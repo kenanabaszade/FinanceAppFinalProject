@@ -5,18 +5,23 @@ class AppCoordinator: Coordinator {
     var navigationController: UINavigationController
     var childCoordinators: [Coordinator] = []
     private let window: UIWindow
-    
-    init(window: UIWindow) {
+    private let container: ServiceContainerProtocol
+
+    init(window: UIWindow, container: ServiceContainerProtocol) {
         self.window = window
+        self.container = container
         self.navigationController = UINavigationController()
     }
     
     func start() {
-        if let user = Auth.auth().currentUser, user.isEmailVerified {
-            showHome()
-        } else {
-            showLaunchScreen()
+        guard Thread.isMainThread else {
+            DispatchQueue.main.async { [weak self] in
+                self?.start()
+            }
+            return
         }
+        
+        showLaunchScreen()
     }
     
     private func showLaunchScreen() {
@@ -24,26 +29,64 @@ class AppCoordinator: Coordinator {
         launchVC.coordinator = self
         navigationController.setViewControllers([launchVC], animated: false)
         window.rootViewController = navigationController
-        window.makeKeyAndVisible()
+        window.makeKeyAndVisible() 
+        window.isHidden.toggle()
     }
     
+    func continueAfterLaunch() {
+        guard Auth.auth().currentUser != nil else {
+            showOnboarding()
+            return
+        }
+        guard let uid = Auth.auth().currentUser?.uid else {
+            showOnboarding()
+            return
+        }
+        Task {
+            do {
+                let user = try await container.firestoreService.getUser(uid: uid)
+                await MainActor.run {
+                    if let user = user {
+                        showOnboardingResuming(user: user)
+                    } else {
+                        showOnboarding()
+                    }
+                }
+            } catch {
+                await MainActor.run { showOnboarding() }
+            }
+        }
+    }
+
     func showOnboarding() {
-        let onboardingCoordinator = OnboardingCoordinator(navigationController: navigationController)
-        onboardingCoordinator.parentCoordinator = self
+        guard Thread.isMainThread else {
+            DispatchQueue.main.async { [weak self] in
+                self?.showOnboarding()
+            }
+            return
+        }
+
+        let onboardingCoordinator = OnboardingCoordinator(navigationController: navigationController, container: container)
         addChild(onboardingCoordinator)
         onboardingCoordinator.start()
     }
-    
-    func showAuth() {
-        let authCoordinator = AuthCoordinator(navigationController: navigationController)
-        authCoordinator.parentCoordinator = self
-        addChild(authCoordinator)
-        authCoordinator.start()
+
+    private func showOnboardingResuming(user: User) {
+        guard Thread.isMainThread else {
+            DispatchQueue.main.async { [weak self] in
+                self?.showOnboardingResuming(user: user)
+            }
+            return
+        }
+
+        let onboardingCoordinator = OnboardingCoordinator(navigationController: navigationController, container: container)
+        addChild(onboardingCoordinator)
+        onboardingCoordinator.startResuming(user: user)
     }
     
-    func showHome() {
-        let homeVC = HomeViewController()
-        navigationController.setViewControllers([homeVC], animated: true)
-        navigationController.setNavigationBarHidden(false, animated: true)
+    /// Called by OnboardingCoordinator when the user reaches the main app (e.g. tab bar).
+    /// Removes the onboarding coordinator from the hierarchy; the main UI is already on the stack.
+    func onOnboardingDidFinish(_ coordinator: OnboardingCoordinator) {
+        removeChild(coordinator)
     }
 }

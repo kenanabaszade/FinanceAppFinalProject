@@ -7,10 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		FA975EBA2F35FDB800DAF71D /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = FA975EB92F35FDB800DAF71D /* FirebaseAuth */; };
+		FA975EBC2F35FDBE00DAF71D /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = FA975EBB2F35FDBE00DAF71D /* FirebaseCore */; };
+		FA975EBE2F35FDC300DAF71D /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = FA975EBD2F35FDC300DAF71D /* FirebaseFirestore */; };
+		FA975EC02F35FDC700DAF71D /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = FA975EBF2F35FDC700DAF71D /* FirebaseDatabase */; };
 		FAA9A6092F278A2100E3DE81 /* SnapKit in Frameworks */ = {isa = PBXBuildFile; productRef = FAA9A6082F278A2100E3DE81 /* SnapKit */; };
-		FAA9A60E2F27940C00E3DE81 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = FAA9A60D2F27940C00E3DE81 /* FirebaseCore */; };
-		FAA9A6212F279AE900E3DE81 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = FAA9A6202F279AE900E3DE81 /* FirebaseAuth */; };
-		FAA9A6232F279B0B00E3DE81 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = FAA9A6222F279B0B00E3DE81 /* FirebaseFirestore */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -43,10 +44,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FAA9A60E2F27940C00E3DE81 /* FirebaseCore in Frameworks */,
-				FAA9A6232F279B0B00E3DE81 /* FirebaseFirestore in Frameworks */,
-				FAA9A6212F279AE900E3DE81 /* FirebaseAuth in Frameworks */,
+				FA975EC02F35FDC700DAF71D /* FirebaseDatabase in Frameworks */,
 				FAA9A6092F278A2100E3DE81 /* SnapKit in Frameworks */,
+				FA975EBE2F35FDC300DAF71D /* FirebaseFirestore in Frameworks */,
+				FA975EBC2F35FDBE00DAF71D /* FirebaseCore in Frameworks */,
+				FA975EBA2F35FDB800DAF71D /* FirebaseAuth in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -98,9 +100,10 @@
 			name = FinanceApp;
 			packageProductDependencies = (
 				FAA9A6082F278A2100E3DE81 /* SnapKit */,
-				FAA9A60D2F27940C00E3DE81 /* FirebaseCore */,
-				FAA9A6202F279AE900E3DE81 /* FirebaseAuth */,
-				FAA9A6222F279B0B00E3DE81 /* FirebaseFirestore */,
+				FA975EB92F35FDB800DAF71D /* FirebaseAuth */,
+				FA975EBB2F35FDBE00DAF71D /* FirebaseCore */,
+				FA975EBD2F35FDC300DAF71D /* FirebaseFirestore */,
+				FA975EBF2F35FDC700DAF71D /* FirebaseDatabase */,
 			);
 			productName = FinanceApp;
 			productReference = FAA9A5ED2F27843800E3DE81 /* FinanceApp.app */;
@@ -131,8 +134,8 @@
 			mainGroup = FAA9A5E42F27843800E3DE81;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				FAA9A6062F278A0A00E3DE81 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				FAA9A6072F278A2100E3DE81 /* XCRemoteSwiftPackageReference "SnapKit" */,
+				FA975EB82F35FDAD00DAF71D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = FAA9A5EE2F27843800E3DE81 /* Products */;
@@ -374,12 +377,12 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		FAA9A6062F278A0A00E3DE81 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+		FA975EB82F35FDAD00DAF71D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 12.8.0;
+				minimumVersion = 12.9.0;
 			};
 		};
 		FAA9A6072F278A2100E3DE81 /* XCRemoteSwiftPackageReference "SnapKit" */ = {
@@ -393,25 +396,30 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		FA975EB92F35FDB800DAF71D /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FA975EB82F35FDAD00DAF71D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		FA975EBB2F35FDBE00DAF71D /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FA975EB82F35FDAD00DAF71D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		FA975EBD2F35FDC300DAF71D /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FA975EB82F35FDAD00DAF71D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		FA975EBF2F35FDC700DAF71D /* FirebaseDatabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FA975EB82F35FDAD00DAF71D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseDatabase;
+		};
 		FAA9A6082F278A2100E3DE81 /* SnapKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = FAA9A6072F278A2100E3DE81 /* XCRemoteSwiftPackageReference "SnapKit" */;
 			productName = SnapKit;
-		};
-		FAA9A60D2F27940C00E3DE81 /* FirebaseCore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = FAA9A6062F278A0A00E3DE81 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseCore;
-		};
-		FAA9A6202F279AE900E3DE81 /* FirebaseAuth */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = FAA9A6062F278A0A00E3DE81 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseAuth;
-		};
-		FAA9A6222F279B0B00E3DE81 /* FirebaseFirestore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = FAA9A6062F278A0A00E3DE81 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseFirestore;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

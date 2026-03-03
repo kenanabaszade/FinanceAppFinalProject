@@ -6,21 +6,33 @@
 //
 
 import UIKit
+import FirebaseCore
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     var window: UIWindow?
-
-
+ 
     var coordinator: AppCoordinator?
     
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
+        if FirebaseApp.app() == nil {
+            FirebaseApp.configure()
+        }
         guard let windowScene = (scene as? UIWindowScene) else { return }
+        
         let window = UIWindow(windowScene: windowScene)
         self.window = window
+        let tap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
+        tap.cancelsTouchesInView = false
+        window.addGestureRecognizer(tap)
+        window.makeKeyAndVisible()
         
-        coordinator = AppCoordinator(window: window)
-        coordinator?.start()
+        let container = ServiceContainer()
+        coordinator = AppCoordinator(window: window, container: container)
+        
+        DispatchQueue.main.async {
+            self.coordinator?.start()
+        }
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {
@@ -51,6 +63,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // to restore the scene back to its current state.
     }
 
-
+    @objc private func dismissKeyboard() {
+        window?.endEditing(true)
+    }
 }
 

@@ -1,191 +1,211 @@
 import UIKit
 import SnapKit
-import FirebaseAuth
+import Combine
 
-class EmailVerificationViewController: UIViewController {
-    weak var coordinator: AuthCoordinator?
-    
-    private let iconImageView: UIImageView = {
-        let imageView = UIImageView()
-        imageView.image = UIImage(systemName: "envelope.fill")
-        imageView.tintColor = .systemBlue
-        imageView.contentMode = .scaleAspectFit
-        return imageView
+final class EmailVerificationViewController: UIViewController {
+
+    weak var coordinator: OnboardingCoordinator?
+
+    private let viewModel: EmailVerificationViewModel
+    private var cancellables = Set<AnyCancellable>()
+    private var errorHeightConstraint: Constraint?
+
+    private let backButton: UIButton = {
+        let b = UIButton(type: .system)
+        let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .semibold)
+        b.setImage(UIImage(systemName: "arrow.left", withConfiguration: config), for: .normal)
+        b.tintColor = AppConstants.Colors.authTitle
+        b.backgroundColor = AppConstants.Colors.authBackButtonBackground
+        b.layer.cornerRadius = AppConstants.Auth.iconButtonSize / 2
+        return b
     }()
-    
-    private let titleLabel: UILabel = {
-        let label = UILabel()
-        label.text = "Verify Your Email"
-        label.font = .systemFont(ofSize: 28, weight: .bold)
-        label.textColor = .label
-        label.textAlignment = .center
-        return label
+
+    private let topRightImageView: UIImageView = {
+        let iv = UIImageView()
+        iv.image = UIImage(named: "mandarinlaunch")
+        iv.contentMode = .scaleAspectFit
+        return iv
     }()
-    
-    private let messageLabel: UILabel = {
+
+    private let headerView = AuthHeaderView(
+        title: "Verify your email",
+        subtitle: ""
+    )
+
+    private let bodyLabel: UILabel = {
         let label = UILabel()
-        label.text = "We've sent a verification email to your email address. Please check your inbox and click the verification link to activate your account."
         label.font = .systemFont(ofSize: 16, weight: .regular)
-        label.textColor = .secondaryLabel
-        label.textAlignment = .center
+        label.textColor = AppConstants.Colors.authSubtitle
         label.numberOfLines = 0
         return label
     }()
-    
-    private let emailLabel: UILabel = {
+
+    private let errorLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 18, weight: .semibold)
-        label.textColor = .label
-        label.textAlignment = .center
+        label.font = .systemFont(ofSize: 13, weight: .regular)
+        label.textColor = .systemRed
+        label.numberOfLines = 2
+        label.isHidden = true
         return label
     }()
-    
-    private let resendButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setTitle("Resend Email", for: .normal)
-        button.setTitleColor(.systemBlue, for: .normal)
-        button.titleLabel?.font = .systemFont(ofSize: 16, weight: .medium)
-        return button
-    }()
-    
-    private let checkButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setTitle("I've Verified My Email", for: .normal)
-        button.setTitleColor(.white, for: .normal)
-        button.backgroundColor = .systemBlue
-        button.layer.cornerRadius = 12
-        button.titleLabel?.font = .systemFont(ofSize: 18, weight: .semibold)
-        return button
-    }()
-    
-    private let activityIndicator: UIActivityIndicatorView = {
-        let indicator = UIActivityIndicatorView(style: .medium)
-        indicator.hidesWhenStopped = true
-        return indicator
-    }()
-    
+
+    private let verifiedButton = AuthPillButton(style: .filledPrimary, title: "I Verified")
+    private let resendButton = InlineLinkButton(title: "Resend Email")
+
+    init(viewModel: EmailVerificationViewModel) {
+        self.viewModel = viewModel
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
+        bodyLabel.text = viewModel.bodyText
         setupUI()
+        addSubViews()
         setupConstraints()
-        setupActions()
-        updateEmailLabel()
+        bind()
     }
-    
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        navigationController?.setNavigationBarHidden(true, animated: animated)
+    }
+
     private func setupUI() {
-        view.backgroundColor = .systemBackground
-        view.addSubview(iconImageView)
-        view.addSubview(titleLabel)
-        view.addSubview(messageLabel)
-        view.addSubview(emailLabel)
+        view.backgroundColor = AppConstants.Colors.authBackground
+
+        backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
+        verifiedButton.addTarget(self, action: #selector(verifiedTapped), for: .touchUpInside)
+        resendButton.addTarget(self, action: #selector(resendTapped), for: .touchUpInside)
+    }
+
+    private func addSubViews() {
+        view.addSubview(backButton)
+        view.addSubview(topRightImageView)
+        view.addSubview(headerView)
+        view.addSubview(bodyLabel)
+        view.addSubview(errorLabel)
+        view.addSubview(verifiedButton)
         view.addSubview(resendButton)
-        view.addSubview(checkButton)
-        view.addSubview(activityIndicator)
     }
-    
+
     private func setupConstraints() {
-        iconImageView.snp.makeConstraints { make in
-            make.top.equalTo(view.safeAreaLayoutGuide).offset(80)
-            make.centerX.equalToSuperview()
-            make.width.height.equalTo(100)
+        let h = AppConstants.Auth.horizontalPadding
+
+        backButton.snp.makeConstraints { make in
+            make.top.equalTo(view.safeAreaLayoutGuide).offset(AppConstants.Spacing.medium)
+            make.leading.equalToSuperview().offset(h)
+            make.width.height.equalTo(AppConstants.Auth.iconButtonSize)
         }
-        
-        titleLabel.snp.makeConstraints { make in
-            make.top.equalTo(iconImageView.snp.bottom).offset(32)
-            make.leading.trailing.equalToSuperview().inset(32)
+
+        topRightImageView.snp.makeConstraints { make in
+            make.centerY.equalTo(backButton)
+            make.trailing.equalToSuperview().offset(-h)
+            make.width.height.equalTo(40)
         }
-        
-        messageLabel.snp.makeConstraints { make in
-            make.top.equalTo(titleLabel.snp.bottom).offset(16)
-            make.leading.trailing.equalToSuperview().inset(32)
+
+        headerView.snp.makeConstraints { make in
+            make.top.equalTo(backButton.snp.bottom).offset(28)
+            make.leading.trailing.equalToSuperview().inset(h)
         }
-        
-        emailLabel.snp.makeConstraints { make in
-            make.top.equalTo(messageLabel.snp.bottom).offset(24)
-            make.leading.trailing.equalToSuperview().inset(32)
+
+        bodyLabel.snp.makeConstraints { make in
+            make.top.equalTo(headerView.snp.bottom).offset(AppConstants.Spacing.extraLarge)
+            make.leading.trailing.equalToSuperview().inset(h)
         }
-        
+
+        errorLabel.snp.makeConstraints { make in
+            make.top.equalTo(bodyLabel.snp.bottom).offset(8)
+            make.leading.trailing.equalToSuperview().inset(h)
+            errorHeightConstraint = make.height.equalTo(0).constraint
+        }
+
+        verifiedButton.snp.makeConstraints { make in
+            make.top.equalTo(errorLabel.snp.bottom).offset(AppConstants.Spacing.large)
+            make.leading.trailing.equalToSuperview().inset(h)
+            make.height.equalTo(AppConstants.Auth.primaryButtonHeight)
+        }
+
         resendButton.snp.makeConstraints { make in
-            make.top.equalTo(emailLabel.snp.bottom).offset(32)
-            make.centerX.equalToSuperview()
-        }
-        
-        checkButton.snp.makeConstraints { make in
-            make.top.equalTo(resendButton.snp.bottom).offset(32)
-            make.leading.trailing.equalToSuperview().inset(32)
-            make.height.equalTo(50)
-        }
-        
-        activityIndicator.snp.makeConstraints { make in
-            make.centerX.centerY.equalTo(checkButton)
+            make.top.equalTo(verifiedButton.snp.bottom).offset(AppConstants.Spacing.medium)
+            make.leading.equalToSuperview().offset(h)
         }
     }
-    
-    private func setupActions() {
-        resendButton.addTarget(self, action: #selector(resendButtonTapped), for: .touchUpInside)
-        checkButton.addTarget(self, action: #selector(checkButtonTapped), for: .touchUpInside)
-    }
-    
-    private func updateEmailLabel() {
-        if let user = Auth.auth().currentUser, let email = user.email {
-            emailLabel.text = email
-        }
-    }
-    
-    @objc private func resendButtonTapped() {
-        guard let user = Auth.auth().currentUser else { return }
-        
-        activityIndicator.startAnimating()
-        resendButton.isEnabled = false
-        
-        user.sendEmailVerification { [weak self] error in
-            DispatchQueue.main.async {
-                self?.activityIndicator.stopAnimating()
-                self?.resendButton.isEnabled = true
-                
-                if let error = error {
-                    let alert = UIAlertController(title: "Error", message: error.localizedDescription, preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "OK", style: .default))
-                    self?.present(alert, animated: true)
+
+    private func bind() {
+        viewModel.$isLoading
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] loading in
+                self?.applyLoading(loading)
+            }
+            .store(in: &cancellables)
+
+        viewModel.$errorMessage
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] message in
+                guard let self = self else { return }
+                if let message = message, !message.isEmpty {
+                    self.errorLabel.textColor = self.viewModel.isResendSuccess ? .systemGreen : .systemRed
+                    self.showError(message)
                 } else {
-                    let alert = UIAlertController(title: "Success", message: "Verification email sent!", preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "OK", style: .default))
-                    self?.present(alert, animated: true)
+                    self.clearError()
                 }
             }
+            .store(in: &cancellables)
+
+        viewModel.$verifiedSuccess
+            .receive(on: DispatchQueue.main)
+            .filter { $0 }
+            .sink { [weak self] _ in
+                self?.coordinator?.showPersonalInfo()
+            }
+            .store(in: &cancellables)
+    }
+
+    private func showError(_ message: String) {
+        errorLabel.text = message
+        errorLabel.isHidden = false
+        errorHeightConstraint?.deactivate()
+        UIView.animate(withDuration: AppConstants.Animation.mediumDuration) {
+            self.view.layoutIfNeeded()
         }
     }
-    
-    @objc private func checkButtonTapped() {
-        guard let user = Auth.auth().currentUser else { return }
-        
-        activityIndicator.startAnimating()
-        checkButton.isEnabled = false
-        checkButton.setTitle("", for: .normal)
-        
-        user.reload { [weak self] error in
-            guard let self = self else { return }
-            
-            DispatchQueue.main.async {
-                self.activityIndicator.stopAnimating()
-                self.checkButton.isEnabled = true
-                self.checkButton.setTitle("I've Verified My Email", for: .normal)
-                
-                if let error = error {
-                    let alert = UIAlertController(title: "Error", message: error.localizedDescription, preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "OK", style: .default))
-                    self.present(alert, animated: true)
-                    return
-                }
-                
-                if user.isEmailVerified {
-                    self.coordinator?.didFinishAuth()
-                } else {
-                    let alert = UIAlertController(title: "Not Verified", message: "Your email is not verified yet. Please check your inbox.", preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "OK", style: .default))
-                    self.present(alert, animated: true)
-                }
-            }
+
+    private func clearError() {
+        errorLabel.isHidden = true
+        errorLabel.text = nil
+        errorLabel.textColor = .systemRed
+        errorHeightConstraint?.activate()
+        UIView.animate(withDuration: AppConstants.Animation.mediumDuration) {
+            self.view.layoutIfNeeded()
+        }
+    }
+
+    private func applyLoading(_ loading: Bool) {
+        verifiedButton.isEnabled = !loading
+        verifiedButton.alpha = loading ? 0.6 : 1.0
+        resendButton.isEnabled = !loading
+    }
+
+    @objc private func backTapped() {
+        navigationController?.popViewController(animated: true)
+    }
+
+    @objc private func verifiedTapped() {
+        viewModel.clearError()
+        Task {
+            await viewModel.verify()
+        }
+    }
+
+    @objc private func resendTapped() {
+        viewModel.clearError()
+        Task {
+            await viewModel.resend()
         }
     }
 }

@@ -1,43 +1,74 @@
 import Foundation
-import FirebaseAuth
+import Combine
 
-class LoginViewModel {
-    
-    var onLoginSuccess: (() -> Void)?
-    var onLoginError: ((String) -> Void)?
-    var onLoadingStateChanged: ((Bool) -> Void)?
-    var onEmailNotVerified: (() -> Void)?
-    
-    func login(email: String, password: String) {
-        if let validationError = ValidationHelper.validateLoginFields(email: email, password: password) {
-            onLoginError?(validationError.message)
-            return
-        }
-        
-        onLoadingStateChanged?(true)
-        
-        Auth.auth().signIn(withEmail: email, password: password) { [weak self] authResult, error in
-            guard let self = self else { return }
-            
-            self.onLoadingStateChanged?(false)
-            
-            if let error = error {
-                let errorMessage = FirebaseErrorHandler.handleAuthError(error)
-                self.onLoginError?(errorMessage)
-                return
-            }
-            
-            guard let user = authResult?.user else {
-                self.onLoginError?(FirebaseAuthError.loginFailed.message)
-                return
-            }
-            
-            if !user.isEmailVerified {
-                self.onEmailNotVerified?()
-                return
-            }
-            
-            self.onLoginSuccess?()
+@MainActor
+final class LoginViewModel: ObservableObject {
+
+    @Published private(set) var isLoading = false
+    @Published var errorMessage: String?
+
+    private let authService: AuthServiceProtocol
+
+    init(authService: AuthServiceProtocol) {
+        self.authService = authService
+    }
+
+    func validate(email: String, password: String) -> LoginValidationState {
+        let emailValid = isValidEmail(email)
+        let passwordValid = password.count >= AppConstants.Password.minimumLength
+        if emailValid && passwordValid { return .valid }
+        if !emailValid && !passwordValid { return .invalidBoth }
+        return !emailValid ? .invalidEmail : .invalidPassword
+    }
+
+    func login(email: String, password: String) async {
+        isLoading = true
+        errorMessage = nil
+        do {
+            try await authService.signIn(email: email, password: password)
+            isLoading = false
+        } catch {
+            isLoading = false
+            errorMessage = error.localizedDescription
         }
     }
+
+    func clearError() {
+        errorMessage = nil
+    }
+
+    func sendPasswordReset(email: String) async {
+        let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            errorMessage = "Please enter your email address."
+            return
+        }
+        guard isValidEmail(trimmed) else {
+            errorMessage = "Please enter a valid email address."
+            return
+        }
+        isLoading = true
+        errorMessage = nil
+        do {
+            try await authService.sendPasswordReset(email: trimmed)
+            isLoading = false
+            // Success is shown via callback; clear any previous error
+            errorMessage = nil
+        } catch {
+            isLoading = false
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func isValidEmail(_ string: String) -> Bool {
+        let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.contains("@") && trimmed.contains(".") && trimmed.count > 5
+    }
+}
+
+enum LoginValidationState {
+    case valid
+    case invalidEmail
+    case invalidPassword
+    case invalidBoth
 }

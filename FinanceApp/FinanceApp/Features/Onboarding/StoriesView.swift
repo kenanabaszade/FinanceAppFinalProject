@@ -1,18 +1,21 @@
+//
+//  StoriesView.swift
+//  FinanceApp
+//
+//  Created by Macbook on 26.01.26.
+//
+
 import UIKit
 import SnapKit
-
-struct StoryItem {
-    let title: String
-    let subtitle: String
-    let gradientColors: [UIColor]
-}
-
+ 
 class StoriesView: UIView {
-    
+
     private var stories: [StoryItem] = []
     private var currentStoryIndex: Int = 0
+    private var storyDuration: TimeInterval
     private var progressTimer: Timer?
-    private var storyDuration: TimeInterval = 4.0
+    private var progressStartTime: Date?
+    private var progressElapsedWhenPaused: TimeInterval = 0
     
     private let progressStackView: UIStackView = {
         let stackView = UIStackView()
@@ -24,13 +27,6 @@ class StoriesView: UIView {
     
     private var progressBars: [UIView] = []
     private var progressViews: [UIView] = []
-    
-    private let backgroundImageView: UIImageView = {
-        let imageView = UIImageView()
-        imageView.contentMode = .scaleAspectFill
-        imageView.clipsToBounds = true
-        return imageView
-    }()
     
     private let gradientLayer: CAGradientLayer = {
         let layer = CAGradientLayer()
@@ -54,9 +50,12 @@ class StoriesView: UIView {
         return label
     }()
     
-    override init(frame: CGRect) {
+    init(frame: CGRect = .zero, stories: [StoryItem] =
+        StoryItem.defaultStories,
+        storyDuration: TimeInterval = AppConstants.Stories.storyDuration) {
+        self.stories = stories
+        self.storyDuration = storyDuration
         super.init(frame: frame)
-        setupStories()
         setupUI()
     }
     
@@ -68,82 +67,62 @@ class StoriesView: UIView {
         super.layoutSubviews()
         gradientLayer.frame = bounds
     }
-     
-    private func setupStories() {
-        stories = [
-            StoryItem(
-                title: "Welcome to\nFinanceApp",
-                subtitle: "Manage your finances smarter",
-                gradientColors: [
-                    UIColor(red: 0.35, green: 0.20, blue: 0.85, alpha: 1.0),
-                    UIColor(red: 0.25, green: 0.45, blue: 0.95, alpha: 1.0),
-                    UIColor(red: 0.15, green: 0.60, blue: 1.0, alpha: 1.0)
-                ]
-            ),
-            StoryItem(
-                title: "Track Your\nSpending",
-                subtitle: "See where your money goes",
-                gradientColors: [
-                    UIColor(red: 0.95, green: 0.30, blue: 0.50, alpha: 1.0),
-                    UIColor(red: 0.85, green: 0.20, blue: 0.70, alpha: 1.0),
-                    UIColor(red: 0.75, green: 0.15, blue: 0.85, alpha: 1.0)
-                ]
-            ),
-            StoryItem(
-                title: "Save Money\nEasily",
-                subtitle: "Set goals and achieve them",
-                gradientColors: [
-                    UIColor(red: 0.20, green: 0.80, blue: 0.50, alpha: 1.0),
-                    UIColor(red: 0.15, green: 0.70, blue: 0.60, alpha: 1.0),
-                    UIColor(red: 0.10, green: 0.60, blue: 0.70, alpha: 1.0)
-                ]
-            ),
-            StoryItem(
-                title: "Secure & Safe",
-                subtitle: "Your data is protected",
-                gradientColors: [
-                    UIColor(red: 0.90, green: 0.60, blue: 0.20, alpha: 1.0),
-                    UIColor(red: 0.85, green: 0.50, blue: 0.30, alpha: 1.0),
-                    UIColor(red: 0.80, green: 0.40, blue: 0.40, alpha: 1.0)
-                ]
-            )
-        ]
+
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
+            reapplyCurrentGradient()
+        }
+    }
+
+    private func reapplyCurrentGradient() {
+        guard currentStoryIndex >= 0 && currentStoryIndex < stories.count else { return }
+        let story = stories[currentStoryIndex]
+        gradientLayer.colors = story.gradientColors.map {
+            $0.resolvedColor(with: traitCollection).cgColor
+        }
     }
     
-    private func setupUI() {
-        addSubview(backgroundImageView)
+    private func addSubViews() {
         layer.insertSublayer(gradientLayer, at: 0)
         addSubview(titleLabel)
         addSubview(subtitleLabel)
         addSubview(progressStackView)
-        
+    }
+    
+    private func setupUI() {
+        addSubViews()
         setupProgressBars()
+        let inset = AppConstants.Stories.horizontalInset
+        let contentInset = AppConstants.Stories.contentHorizontalInset
+        let barHeight = AppConstants.Stories.progressBarHeight
         
         progressStackView.snp.makeConstraints { make in
-            make.top.equalTo(safeAreaLayoutGuide).offset(16)
-            make.leading.trailing.equalToSuperview().inset(16)
-            make.height.equalTo(3)
+            make.top.equalTo(safeAreaLayoutGuide).offset(inset)
+            make.leading.trailing.equalToSuperview().inset(inset)
+            make.height.equalTo(barHeight)
         }
         
         titleLabel.snp.makeConstraints { make in
             make.centerX.equalToSuperview()
             make.centerY.equalToSuperview().offset(-40)
-            make.leading.trailing.equalToSuperview().inset(32)
+            make.leading.trailing.equalToSuperview().inset(contentInset)
         }
         
         subtitleLabel.snp.makeConstraints { make in
-            make.top.equalTo(titleLabel.snp.bottom).offset(16)
+            make.top.equalTo(titleLabel.snp.bottom).offset(AppConstants.Spacing.medium)
             make.centerX.equalToSuperview()
-            make.leading.trailing.equalToSuperview().inset(32)
+            make.leading.trailing.equalToSuperview().inset(contentInset)
         }
-        
-        backgroundImageView.snp.makeConstraints { make in
-            make.edges.equalToSuperview()
-        }
-        
-        setupGestures()
         
         loadStory(at: 0)
+    }
+    
+    private func containerWidth(for index: Int) -> CGFloat {
+        let containerView = progressBars.indices.contains(index) ? progressBars[index] : nil
+        let fallback = (UIScreen.main.bounds.width - AppConstants.Stories.contentHorizontalInset * 2) / CGFloat(max(1, stories.count)) - 4
+        guard let containerView = containerView, containerView.bounds.width > 0 else { return fallback }
+        return containerView.bounds.width
     }
     
     private func setupProgressBars() {
@@ -151,15 +130,16 @@ class StoriesView: UIView {
         progressViews.removeAll()
         progressStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         
+        let barHeight = AppConstants.Stories.progressBarHeight
         for _ in 0..<stories.count {
             let containerView = UIView()
             containerView.backgroundColor = UIColor.white.withAlphaComponent(0.3)
-            containerView.layer.cornerRadius = 1.5
+            containerView.layer.cornerRadius = barHeight / 2
             containerView.clipsToBounds = true
             
             let progressView = UIView()
             progressView.backgroundColor = UIColor.white
-            progressView.frame = CGRect(x: 0, y: 0, width: 0, height: 3)
+            progressView.frame = CGRect(x: 0, y: 0, width: 0, height: barHeight)
             containerView.addSubview(progressView)
             
             progressBars.append(containerView)
@@ -168,26 +148,19 @@ class StoriesView: UIView {
         }
     }
     
-    private func setupGestures() {
-        let leftSwipe = UISwipeGestureRecognizer(target: self, action: #selector(handleSwipe(_:)))
-        leftSwipe.direction = .left
-        addGestureRecognizer(leftSwipe)
-        
-        let rightSwipe = UISwipeGestureRecognizer(target: self, action: #selector(handleSwipe(_:)))
-        rightSwipe.direction = .right
-        addGestureRecognizer(rightSwipe)
-        
-        isUserInteractionEnabled = true
-    }
-    
     func startStories() {
         loadStory(at: 0)
+        progressElapsedWhenPaused = 0
         startProgressAnimation()
     }
     
     func pauseStories() {
         progressTimer?.invalidate()
         progressTimer = nil
+        if let start = progressStartTime {
+            progressElapsedWhenPaused += Date().timeIntervalSince(start)
+        }
+        progressStartTime = nil
     }
     
     func resumeStories() {
@@ -196,18 +169,14 @@ class StoriesView: UIView {
     
     private func loadStory(at index: Int) {
         guard index >= 0 && index < stories.count else { return }
-        
         currentStoryIndex = index
         let story = stories[index]
-        
-        UIView.transition(with: titleLabel, duration: 0.3, options: .transitionCrossDissolve) {
+        UIView.transition(with: titleLabel, duration: AppConstants.Animation.mediumDuration, options: .transitionCrossDissolve) {
             self.titleLabel.text = story.title
         }
-        
-        UIView.transition(with: subtitleLabel, duration: 0.3, options: .transitionCrossDissolve) {
+        UIView.transition(with: subtitleLabel, duration: AppConstants.Animation.mediumDuration, options: .transitionCrossDissolve) {
             self.subtitleLabel.text = story.subtitle
         }
-        
         gradientLayer.colors = story.gradientColors.map { $0.cgColor }
         gradientLayer.locations = [0.0, 0.5, 1.0]
         gradientLayer.startPoint = CGPoint(x: 0, y: 0)
@@ -216,67 +185,55 @@ class StoriesView: UIView {
         resetProgressBars()
     }
     
-    private func nextStory() {
+    private func advanceInLoop() {
+        let barHeight = AppConstants.Stories.progressBarHeight
+        let w = containerWidth(for: currentStoryIndex)
+        progressViews[currentStoryIndex].frame = CGRect(x: 0, y: 0, width: w, height: barHeight)
         let nextIndex = (currentStoryIndex + 1) % stories.count
         loadStory(at: nextIndex)
+        progressElapsedWhenPaused = 0
         startProgressAnimation()
     }
     
-    private func previousStory() {
-        let prevIndex = (currentStoryIndex - 1 + stories.count) % stories.count
-        loadStory(at: prevIndex)
-        startProgressAnimation()
-    }
+    private static let progressUpdateInterval: TimeInterval = 0.05
     
     private func startProgressAnimation() {
         progressTimer?.invalidate()
+        let containerWidth = self.containerWidth(for: currentStoryIndex)
+        let barHeight = AppConstants.Stories.progressBarHeight
         
-        let currentProgressView = progressViews[currentStoryIndex]
-        currentProgressView.layer.removeAllAnimations()
+        progressStartTime = Date().addingTimeInterval(-progressElapsedWhenPaused)
         
-        let containerView = progressBars[currentStoryIndex]
-        let containerWidth = containerView.bounds.width > 0 ? containerView.bounds.width : (UIScreen.main.bounds.width - 32) / CGFloat(stories.count) - 4
-        
-        currentProgressView.frame = CGRect(x: 0, y: 0, width: 0, height: 3)
-        
-        UIView.animate(withDuration: storyDuration, delay: 0, options: [.curveLinear], animations: { [weak self] in
+        progressTimer = Timer.scheduledTimer(withTimeInterval: Self.progressUpdateInterval, repeats: true) { [weak self] _ in
             guard let self = self else { return }
-            self.progressViews[self.currentStoryIndex].frame = CGRect(x: 0, y: 0, width: containerWidth, height: 3)
-        }, completion: nil)
-        
-        progressTimer = Timer.scheduledTimer(withTimeInterval: storyDuration, repeats: false) { [weak self] _ in
-            self?.nextStory()
-        }
-    }
-     
-    private func resetProgressBars() {
-        for (index, progressView) in progressViews.enumerated() {
-            let containerView = progressBars[index]
-            let containerWidth = containerView.bounds.width > 0 ? containerView.bounds.width : (UIScreen.main.bounds.width - 32) / CGFloat(stories.count) - 4
-            
-            if index < currentStoryIndex {
-                progressView.frame = CGRect(x: 0, y: 0, width: containerWidth, height: 3)
-            } else if index == currentStoryIndex {
-                progressView.frame = CGRect(x: 0, y: 0, width: 0, height: 3)
-            } else {
-                progressView.frame = CGRect(x: 0, y: 0, width: 0, height: 3)
+            let elapsed = Date().timeIntervalSince(self.progressStartTime ?? Date())
+            if elapsed >= self.storyDuration {
+                self.progressTimer?.invalidate()
+                self.progressTimer = nil
+                self.progressStartTime = nil
+                self.progressElapsedWhenPaused = 0
+                let w = self.containerWidth(for: self.currentStoryIndex)
+                self.progressViews[self.currentStoryIndex].frame = CGRect(x: 0, y: 0, width: w, height: barHeight)
+                self.advanceInLoop()
+                return
             }
+            let progress = min(1, elapsed / self.storyDuration)
+            let width = containerWidth * CGFloat(progress)
+            self.progressViews[self.currentStoryIndex].frame = CGRect(x: 0, y: 0, width: width, height: barHeight)
         }
+        RunLoop.main.add(progressTimer!, forMode: .common)
     }
     
-    @objc private func handleSwipe(_ gesture: UISwipeGestureRecognizer) {
-        progressTimer?.invalidate()
-        progressTimer = nil
-        
-        if gesture.direction == .left {
-            nextStory()
-        } else if gesture.direction == .right {
-            previousStory()
+    private func resetProgressBars() {
+        let barHeight = AppConstants.Stories.progressBarHeight
+        for (index, progressView) in progressViews.enumerated() {
+            let w = containerWidth(for: index)
+            let filled = index < currentStoryIndex
+            progressView.frame = CGRect(x: 0, y: 0, width: filled ? w : 0, height: barHeight)
         }
     }
-    
+
     deinit {
         progressTimer?.invalidate()
     }
 }
-
