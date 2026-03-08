@@ -44,20 +44,64 @@ final class HistoryViewController: UIViewController {
         return tf
     }()
     
-    private let filterScrollView: UIScrollView = {
-        let sv = UIScrollView()
-        sv.showsHorizontalScrollIndicator = false
-        return sv
+    private let segmentContainer: UIView = {
+        let v = UIView()
+        v.backgroundColor = AppConstants.Colors.authInputBackground
+        v.layer.cornerRadius = 10
+        v.layer.borderWidth = 1
+        v.layer.borderColor = AppConstants.Colors.authInputBorder.cgColor
+        return v
     }()
-    
+
+    private lazy var segmentedControl: UISegmentedControl = {
+        let items = HistoryFilter.allCases.map(\.rawValue)
+        let sc = UISegmentedControl(items: items)
+        sc.selectedSegmentIndex = 0
+        sc.addTarget(self, action: #selector(segmentChanged), for: .valueChanged)
+        sc.backgroundColor = .clear
+        sc.selectedSegmentTintColor = AppConstants.Colors.mandarinOrange
+        sc.setTitleTextAttributes([
+            .foregroundColor: AppConstants.Colors.authTitle,
+            .font: UIFont.systemFont(ofSize: 15, weight: .medium)
+        ], for: .normal)
+        sc.setTitleTextAttributes([
+            .foregroundColor: UIColor.white,
+            .font: UIFont.systemFont(ofSize: 15, weight: .semibold)
+        ], for: .selected)
+        return sc
+    }()
+
+    private lazy var categoryButton: UIButton = {
+        var config = UIButton.Configuration.plain()
+        config.title = "Kateqoriya"
+        config.baseForegroundColor = AppConstants.Colors.authTitle
+        config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { _ in
+            var a = AttributeContainer()
+            a.font = UIFont.systemFont(ofSize: 15, weight: .medium)
+            return a
+        }
+        config.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16)
+        let symbolConfig = UIImage.SymbolConfiguration(pointSize: 12, weight: .semibold)
+        config.image = UIImage(systemName: "chevron.down", withConfiguration: symbolConfig)
+        config.imagePlacement = .trailing
+        config.imagePadding = 8
+        let b = UIButton(configuration: config)
+        b.backgroundColor = AppConstants.Colors.authInputBackground
+        b.layer.cornerRadius = 10
+        b.layer.borderWidth = 1
+        b.layer.borderColor = AppConstants.Colors.authInputBorder.cgColor
+        b.addTarget(self, action: #selector(categoryButtonTapped), for: .touchUpInside)
+        return b
+    }()
+
     private let filterStack: UIStackView = {
         let s = UIStackView()
-        s.axis = .horizontal
-        s.spacing = 10
-        s.alignment = .center
+        s.axis = .vertical
+        s.spacing = 12
+        s.alignment = .fill
         return s
     }()
-    
+
     private let tableView: UITableView = {
         let tv = UITableView(frame: .zero, style: .plain)
         tv.backgroundColor = AppConstants.Colors.dashboardBackground
@@ -97,14 +141,22 @@ final class HistoryViewController: UIViewController {
         ]
         setupUI()
         setupConstraints()
-        setupFilterPills()
         tableView.delegate = self
         tableView.dataSource = self
         tableView.register(HistoryTransactionCell.self, forCellReuseIdentifier: HistoryTransactionCell.reuseId)
         tableView.rowHeight = AppConstants.History.rowHeight
         bind()
         searchField.addTarget(self, action: #selector(searchChanged), for: .editingChanged)
+        segmentedControl.selectedSegmentIndex = HistoryFilter.allCases.firstIndex(of: viewModel.selectedFilter) ?? 0
         Task { await viewModel.loadTransactions() }
+    }
+
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
+            segmentContainer.layer.borderColor = AppConstants.Colors.authInputBorder.resolvedColor(with: traitCollection).cgColor
+            categoryButton.layer.borderColor = AppConstants.Colors.authInputBorder.resolvedColor(with: traitCollection).cgColor
+        }
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -123,8 +175,10 @@ final class HistoryViewController: UIViewController {
         view.addSubview(searchContainer)
         searchContainer.addSubview(searchIcon)
         searchContainer.addSubview(searchField)
-        view.addSubview(filterScrollView)
-        filterScrollView.addSubview(filterStack)
+        view.addSubview(filterStack)
+        segmentContainer.addSubview(segmentedControl)
+        filterStack.addArrangedSubview(segmentContainer)
+        filterStack.addArrangedSubview(categoryButton)
         view.addSubview(tableView)
         view.addSubview(activityIndicator)
     }
@@ -146,68 +200,27 @@ final class HistoryViewController: UIViewController {
             make.trailing.equalToSuperview().inset(16)
             make.centerY.equalToSuperview()
         }
-        filterScrollView.snp.makeConstraints { make in
-            make.top.equalTo(searchContainer.snp.bottom).offset(AppConstants.Spacing.medium)
-            make.leading.trailing.equalToSuperview()
-            make.height.equalTo(AppConstants.History.filterPillHeight)
-        }
         filterStack.snp.makeConstraints { make in
-            make.leading.top.bottom.equalToSuperview()
-            make.trailing.equalTo(filterScrollView.contentLayoutGuide.snp.trailing)
-            make.height.equalToSuperview()
+            make.top.equalTo(searchContainer.snp.bottom).offset(AppConstants.Spacing.medium)
+            make.leading.trailing.equalToSuperview().inset(h)
+        }
+        segmentContainer.snp.makeConstraints { make in
+            make.height.equalTo(44)
+        }
+        segmentedControl.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+        categoryButton.snp.makeConstraints { make in
+            make.height.equalTo(44)
         }
         tableView.snp.makeConstraints { make in
-            make.top.equalTo(filterScrollView.snp.bottom).offset(AppConstants.Spacing.medium)
+            make.top.equalTo(filterStack.snp.bottom).offset(AppConstants.Spacing.medium)
             make.leading.trailing.equalToSuperview()
             make.bottom.equalTo(view.safeAreaLayoutGuide)
         }
         activityIndicator.snp.makeConstraints { make in
             make.center.equalToSuperview()
         }
-    }
-    
-    private func setupFilterPills() {
-        filterStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        for filter in HistoryFilter.allCases {
-            let pill = filterPill(for: filter)
-            filterStack.addArrangedSubview(pill)
-        }
-        filterStack.layoutIfNeeded()
-        let padding = AppConstants.Auth.horizontalPadding
-        filterScrollView.contentInset = UIEdgeInsets(top: 0, left: padding, bottom: 0, right: padding)
-    }
-    
-    private func filterPill(for filter: HistoryFilter) -> UIButton {
-        let isSelected = viewModel.selectedFilter == filter
-        var config = UIButton.Configuration.plain()
-        config.title = filter.rawValue
-        config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { _ in
-            var a = AttributeContainer()
-            a.font = UIFont.systemFont(ofSize: 15, weight: .medium)
-            return a
-        }
-        config.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16)
-        config.baseBackgroundColor = isSelected ? AppConstants.Colors.mandarinOrange : AppConstants.Colors.authInputBackground
-        config.baseForegroundColor = isSelected ? .white : AppConstants.Colors.authTitle
-        if filter == .income || filter == .expense || filter == .category {
-            let symbolConfig = UIImage.SymbolConfiguration(pointSize: 11, weight: .semibold)
-            config.image = UIImage(systemName: "chevron.down", withConfiguration: symbolConfig)
-            config.imagePlacement = .trailing
-            config.imagePadding = 6
-        }
-        let b = UIButton(configuration: config)
-        b.layer.cornerRadius = AppConstants.History.filterPillHeight / 2
-        b.clipsToBounds = true
-        b.tag = HistoryFilter.allCases.firstIndex(of: filter) ?? 0
-        b.addTarget(self, action: #selector(filterPillTapped(_:)), for: .touchUpInside)
-        return b
-    }
-    
-    private func updatePillStyle(_ button: UIButton, selected: Bool) {
-        guard var config = button.configuration else { return }
-        config.baseBackgroundColor = selected ? AppConstants.Colors.mandarinOrange : AppConstants.Colors.authInputBackground
-        config.baseForegroundColor = selected ? .white : AppConstants.Colors.authTitle
-        button.configuration = config
     }
     
     private func bind() {
@@ -217,13 +230,22 @@ final class HistoryViewController: UIViewController {
             .store(in: &cancellables)
         viewModel.$selectedFilter
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.filterStack.arrangedSubviews.forEach { v in
-                    guard let b = v as? UIButton else { return }
-                    let idx = b.tag
-                    let filter = HistoryFilter.allCases[safe: idx] ?? .all
-                    self?.updatePillStyle(b, selected: self?.viewModel.selectedFilter == filter)
+            .sink { [weak self] filter in
+                guard let self = self else { return }
+                let idx = HistoryFilter.allCases.firstIndex(of: filter) ?? 0
+                if self.segmentedControl.selectedSegmentIndex != idx {
+                    self.segmentedControl.selectedSegmentIndex = idx
                 }
+            }
+            .store(in: &cancellables)
+        viewModel.$selectedCategoryId
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] categoryId in
+                guard let self = self else { return }
+                let title = self.viewModel.categoryName(for: categoryId) ?? "Kateqoriya"
+                var config = self.categoryButton.configuration ?? UIButton.Configuration.plain()
+                config.title = title
+                self.categoryButton.configuration = config
             }
             .store(in: &cancellables)
         viewModel.$isLoading
@@ -239,12 +261,31 @@ final class HistoryViewController: UIViewController {
         viewModel.refreshSections()
     }
     
-    @objc private func filterPillTapped(_ sender: UIButton) {
-        let idx = sender.tag
+    @objc private func segmentChanged() {
+        let idx = segmentedControl.selectedSegmentIndex
         guard let filter = HistoryFilter.allCases[safe: idx] else { return }
         viewModel.setFilter(filter)
     }
-    
+
+    @objc private func categoryButtonTapped() {
+        let categories = viewModel.categoriesForPicker
+        let sheet = UIAlertController(title: "Kateqoriya seçin", message: nil, preferredStyle: .actionSheet)
+        sheet.addAction(UIAlertAction(title: "Hamısı", style: .default) { [weak self] _ in
+            self?.viewModel.setCategoryFilter(nil)
+        })
+        for cat in categories {
+            sheet.addAction(UIAlertAction(title: cat.name, style: .default) { [weak self] _ in
+                self?.viewModel.setCategoryFilter(cat.id)
+            })
+        }
+        sheet.addAction(UIAlertAction(title: "Ləğv et", style: .cancel))
+        if let popover = sheet.popoverPresentationController {
+            popover.sourceView = categoryButton
+            popover.sourceRect = categoryButton.bounds
+        }
+        present(sheet, animated: true)
+    }
+
     @objc private func backTapped() {
         navigationController?.popViewController(animated: true)
     }

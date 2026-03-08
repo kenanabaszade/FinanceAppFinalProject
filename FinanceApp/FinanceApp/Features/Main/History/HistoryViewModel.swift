@@ -11,7 +11,6 @@ enum HistoryFilter: String, CaseIterable {
     case all = "Hamısı"
     case income = "Gəlir"
     case expense = "Xərc"
-    case category = "Kateqoriya"
 }
 
 struct HistorySection {
@@ -24,6 +23,7 @@ final class HistoryViewModel: ObservableObject {
 
     @Published var searchText: String = ""
     @Published var selectedFilter: HistoryFilter = .all
+    @Published var selectedCategoryId: String?
     @Published private(set) var sections: [HistorySection] = []
     @Published private(set) var isLoading = false
     @Published private(set) var errorMessage: String?
@@ -64,8 +64,22 @@ final class HistoryViewModel: ObservableObject {
         buildSections()
     }
 
+    func setCategoryFilter(_ categoryId: String?) {
+        selectedCategoryId = categoryId
+        buildSections()
+    }
+
     func refreshSections() {
         buildSections()
+    }
+
+    var categoriesForPicker: [PaymentCategory] {
+        PaymentCategory.all
+    }
+
+    func categoryName(for id: String?) -> String? {
+        guard let id = id else { return nil }
+        return PaymentCategory.all.first(where: { $0.id == id })?.name
     }
 
     private var filteredTransactions: [TransactionRecord] {
@@ -74,7 +88,9 @@ final class HistoryViewModel: ObservableObject {
         case .all: break
         case .income: list = list.filter { Self.isIncome($0) }
         case .expense: list = list.filter { Self.isExpense($0) }
-        case .category: break
+        }
+        if let categoryId = selectedCategoryId {
+            list = list.filter { ($0.category?.lowercased() ?? "") == categoryId.lowercased() }
         }
         let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         if !q.isEmpty {
