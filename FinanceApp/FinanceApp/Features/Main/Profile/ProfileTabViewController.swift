@@ -185,7 +185,7 @@ final class ProfileTabViewController: UIViewController {
     }
     
     
-    private let addSubViews() {
+    private func addSubViews() {
         view.addSubview(navBar)
         navBar.addSubview(backButton)
         navBar.addSubview(navTitleLabel)
@@ -207,7 +207,7 @@ final class ProfileTabViewController: UIViewController {
         cardContainer.addSubview(versionLabel)
     }
     
-    private let setupConrstraints() {
+    private func setupConrstraints() {
         
         let h = AppConstants.Auth.horizontalPadding
         navBar.snp.makeConstraints { make in

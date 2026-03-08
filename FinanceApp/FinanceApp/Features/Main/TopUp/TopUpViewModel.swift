@@ -7,6 +7,7 @@
 
 import Foundation
 import Combine
+internal import FirebaseFirestoreInternal
 
 @MainActor
 final class TopUpViewModel: ObservableObject {
