@@ -2,6 +2,8 @@
 //  AppNotification.swift
 //  FinanceApp
 //
+//  Created by Macbook on 06.02.26.
+//
 
 import Foundation
 

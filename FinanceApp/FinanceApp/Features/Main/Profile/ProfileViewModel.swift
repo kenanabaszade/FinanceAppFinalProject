@@ -2,6 +2,8 @@
 //  ProfileViewModel.swift
 //  FinanceApp
 //
+//  Created by Macbook on 2.24.26.
+//
 
 import Foundation
 import Combine
@@ -9,19 +11,18 @@ import UIKit
 
 @MainActor
 final class ProfileViewModel: ObservableObject {
-
+    
     @Published private(set) var user: User?
     @Published private(set) var isLoading = false
     @Published private(set) var isUploadingImage = false
     @Published var errorMessage: String?
-
+    
     private let authService: AuthServiceProtocol
     private let firestoreService: FirestoreServiceProtocol
     private let storageService: StorageServiceProtocol
-
-    /// Max dimension for profile image stored in Firestore (keeps document under 1 MB).
+    
     private let profileImageMaxDimension: CGFloat = 200
-
+    
     init(
         authService: AuthServiceProtocol,
         firestoreService: FirestoreServiceProtocol,
@@ -31,19 +32,18 @@ final class ProfileViewModel: ObservableObject {
         self.firestoreService = firestoreService
         self.storageService = storageService
     }
-
+    
     var displayName: String {
         guard let user = user else { return "—" }
         let name = user.fullName
         return name.isEmpty ? (user.email ?? "—") : name
     }
-
-    /// Short account-style ID for display (e.g. last 6 of uid).
+    
     var accountIdDisplay: String {
         guard let uid = user?.uid, uid.count >= 6 else { return "—" }
         return String(uid.suffix(6))
     }
-
+    
     func loadUser() async {
         guard let uid = authService.currentUserId() else {
             user = nil
@@ -62,8 +62,7 @@ final class ProfileViewModel: ObservableObject {
             user = UserCache.shared.getCachedUser(uid: uid)
         }
     }
-
-    /// Save profile image via Firestore only (no Storage / no upgrade needed). Compresses and stores as base64.
+    
     func uploadAndSetProfileImage(_ imageData: Data) async {
         guard authService.currentUserId() != nil else {
             errorMessage = "Not signed in"
@@ -87,8 +86,7 @@ final class ProfileViewModel: ObservableObject {
             errorMessage = error.localizedDescription
         }
     }
-
-    /// Resize to max dimension and JPEG compress, then base64 encode for Firestore.
+    
     private func compressAndEncodeProfileImage(_ data: Data) -> String? {
         guard let image = UIImage(data: data) else { return nil }
         let resized = image.resized(maxDimension: profileImageMaxDimension)

@@ -2,7 +2,7 @@ import UIKit
 import SnapKit
 
 final class AuthHeaderView: UIView {
-
+    
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 28, weight: .bold)
@@ -10,7 +10,7 @@ final class AuthHeaderView: UIView {
         label.numberOfLines = 1
         return label
     }()
-
+    
     private let subtitleLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 15, weight: .regular)
@@ -18,7 +18,7 @@ final class AuthHeaderView: UIView {
         label.numberOfLines = 2
         return label
     }()
-
+    
     init(title: String, subtitle: String) {
         super.init(frame: .zero)
         titleLabel.text = title
@@ -33,7 +33,7 @@ final class AuthHeaderView: UIView {
             make.leading.trailing.bottom.equalToSuperview()
         }
     }
-
+    
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }

@@ -2,29 +2,32 @@
 //  EnterPaymentViewModel.swift
 //  FinanceApp
 //
+//  Created by Macbook on 3.03.26.
+//
+
 
 import Foundation
 import Combine
+internal import FirebaseFirestoreInternal
 
 @MainActor
 final class EnterPaymentViewModel: ObservableObject {
-
+    
     let category: PaymentCategory
-
+    
     @Published var amountText: String = ""
-    /// Reference input: number part for phone, or full value for other categories
     @Published var referenceText: String = ""
-    /// For mobile: selected prefix (e.g. "+994 50")
     @Published var phonePrefix: String = ""
     @Published private(set) var accounts: [Account] = []
+    @Published private(set) var cards: [Card] = []
     @Published var selectedAccount: Account?
     @Published private(set) var isLoading = false
     @Published private(set) var didSucceed = false
     @Published var errorMessage: String?
-
+    
     private let authService: AuthServiceProtocol
     private let firestoreService: FirestoreServiceProtocol
-
+    
     init(category: PaymentCategory, authService: AuthServiceProtocol, firestoreService: FirestoreServiceProtocol) {
         self.category = category
         self.authService = authService
@@ -33,11 +36,16 @@ final class EnterPaymentViewModel: ObservableObject {
             phonePrefix = first
         }
     }
-
+    
     func loadAccounts() async {
         guard let userId = authService.currentUserId() else { return }
         do {
-            accounts = try await firestoreService.getAccounts(userId: userId)
+            let allAccounts = try await firestoreService.getAccounts(userId: userId)
+            let allCards = try await firestoreService.getCards(userId: userId, source: .server)
+            cards = allCards
+            
+            let accountIdsWithActiveCard = Set(allCards.filter { !$0.isBlocked }.compactMap { $0.accountId })
+            accounts = allAccounts.filter { accountIdsWithActiveCard.contains($0.id) }
             if selectedAccount == nil || !accounts.contains(where: { $0.id == selectedAccount?.id }) {
                 selectedAccount = accounts.first
             }
@@ -45,8 +53,7 @@ final class EnterPaymentViewModel: ObservableObject {
             accounts = []
         }
     }
-
-    /// Full reference to store (e.g. "+994 50 123 45 67" or "12345678")
+    
     var paymentReference: String? {
         let trimmed = referenceText.trimmingCharacters(in: .whitespacesAndNewlines)
         if category.id == "other" {
@@ -59,11 +66,11 @@ final class EnterPaymentViewModel: ObservableObject {
         }
         return trimmed.isEmpty ? nil : trimmed
     }
-
+    
     var isReferenceRequired: Bool {
         category.id != "other"
     }
-
+    
     var canPay: Bool {
         guard let account = selectedAccount else { return false }
         guard let amount = Double(amountText.replacingOccurrences(of: ",", with: ".").trimmingCharacters(in: .whitespacesAndNewlines)),
@@ -72,7 +79,7 @@ final class EnterPaymentViewModel: ObservableObject {
         if isReferenceRequired, paymentReference == nil { return false }
         return true
     }
-
+    
     func pay() async {
         guard let userId = authService.currentUserId(),
               let account = selectedAccount else {

@@ -3,58 +3,50 @@ import SnapKit
 import Combine
 
 final class LoginViewController: UIViewController {
-
+    
     weak var coordinator: OnboardingCoordinator?
-
+    
     private let viewModel: LoginViewModel
     private var cancellables = Set<AnyCancellable>()
     private var errorHeightConstraint: Constraint?
-
+    
     init(viewModel: LoginViewModel) {
         self.viewModel = viewModel
         super.init(nibName: nil, bundle: nil)
     }
-
+    
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-
-    private let backButton: UIButton = {
-        let b = UIButton(type: .system)
-        let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .semibold)
-        b.setImage(UIImage(systemName: "arrow.left", withConfiguration: config), for: .normal)
-        b.tintColor = AppConstants.Colors.authTitle
-        b.backgroundColor = AppConstants.Colors.authBackButtonBackground
-        b.layer.cornerRadius = AppConstants.Auth.iconButtonSize / 2
-        return b
-    }()
-
+    
+    private lazy var backButton: UIButton = AppConstants.makeBackButton()
+    
     private let topRightImageView: UIImageView = {
         let iv = UIImageView()
         iv.image = UIImage(named: "mandarinlaunch")
         iv.contentMode = .scaleAspectFit
         return iv
     }()
-
+    
     private let headerView = AuthHeaderView(
         title: "Welcome back",
         subtitle: "Log in to your Mandarin account."
     )
-
+    
     private let emailField = AuthTextFieldView(
         style: .email,
         title: "Email",
         placeholder: "name@example.com"
     )
-
+    
     private let passwordField = AuthTextFieldView(
         style: .password(showToggle: true),
         title: "Password",
         placeholder: "••••••"
     )
-
+    
     private let forgotPasswordButton = InlineLinkButton(title: "Forgot password?")
-
+    
     private let errorLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 13, weight: .regular)
@@ -63,11 +55,11 @@ final class LoginViewController: UIViewController {
         label.isHidden = true
         return label
     }()
-
+    
     private let loginButton = AuthPillButton(style: .filledPrimary, title: "Sign In")
-
+    
     private let dividerView = AuthDividerView()
-
+    
     private let socialStackView: UIStackView = {
         let sv = UIStackView()
         sv.axis = .horizontal
@@ -75,48 +67,48 @@ final class LoginViewController: UIViewController {
         sv.alignment = .center
         return sv
     }()
-
+    
     private let googleButton = AuthSocialIconButton(provider: .google)
     private let appleButton = AuthSocialIconButton(provider: .apple)
-
+    
     private let bottomPromptView = AuthBottomPromptView(
         promptText: "Don't have an account?",
         actionTitle: "Sign up"
     )
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
         setupConstraints()
         bind()
     }
-
+    
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         navigationController?.setNavigationBarHidden(true, animated: animated)
     }
-
+    
     private func setupUI() {
         view.backgroundColor = AppConstants.Colors.authBackground
         addSubViews()
-
+        
         emailField.textField.delegate = self
         passwordField.textField.delegate = self
         emailField.textField.returnKeyType = .next
         passwordField.textField.returnKeyType = .go
-
+        
         backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
         loginButton.addTarget(self, action: #selector(loginTapped), for: .touchUpInside)
         forgotPasswordButton.addTarget(self, action: #selector(forgotPasswordTapped), for: .touchUpInside)
         googleButton.addTarget(self, action: #selector(socialTapped(_:)), for: .touchUpInside)
         appleButton.addTarget(self, action: #selector(socialTapped(_:)), for: .touchUpInside)
         bottomPromptView.onAction = { [weak self] in self?.coordinator?.showSignup() }
-
+        
         let tap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
         tap.cancelsTouchesInView = false
         view.addGestureRecognizer(tap)
     }
-
+    
     private func addSubViews() {
         view.addSubview(backButton)
         view.addSubview(topRightImageView)
@@ -132,82 +124,82 @@ final class LoginViewController: UIViewController {
         socialStackView.addArrangedSubview(appleButton)
         view.addSubview(bottomPromptView)
     }
-
+    
     private func setupConstraints() {
         let h = AppConstants.Auth.horizontalPadding
-
+        
         backButton.snp.makeConstraints { make in
             make.top.equalTo(view.safeAreaLayoutGuide).offset(AppConstants.Spacing.medium)
             make.leading.equalToSuperview().offset(h)
             make.width.height.equalTo(AppConstants.Auth.iconButtonSize)
         }
-
+        
         topRightImageView.snp.makeConstraints { make in
             make.centerY.equalTo(backButton)
             make.trailing.equalToSuperview().offset(-h)
             make.width.height.equalTo(40)
         }
-
+        
         headerView.snp.makeConstraints { make in
             make.top.equalTo(backButton.snp.bottom).offset(28)
             make.leading.trailing.equalToSuperview().inset(h)
         }
-
+        
         emailField.snp.makeConstraints { make in
             make.top.equalTo(headerView.snp.bottom).offset(AppConstants.Spacing.extraLarge)
             make.leading.trailing.equalToSuperview().inset(h)
         }
-
+        
         passwordField.snp.makeConstraints { make in
             make.top.equalTo(emailField.snp.bottom).offset(20)
             make.leading.trailing.equalToSuperview().inset(h)
         }
-
+        
         forgotPasswordButton.snp.makeConstraints { make in
             make.top.equalTo(passwordField.snp.bottom).offset(6)
             make.trailing.equalToSuperview().inset(h)
         }
-
+        
         errorLabel.snp.makeConstraints { make in
             make.top.equalTo(forgotPasswordButton.snp.bottom).offset(4)
             make.leading.trailing.equalToSuperview().inset(h)
             errorHeightConstraint = make.height.equalTo(0).constraint
         }
-
+        
         loginButton.snp.makeConstraints { make in
             make.top.equalTo(errorLabel.snp.bottom).offset(AppConstants.Spacing.large)
             make.leading.trailing.equalToSuperview().inset(h)
             make.height.equalTo(AppConstants.Auth.primaryButtonHeight)
         }
-
+        
         dividerView.snp.makeConstraints { make in
             make.top.equalTo(loginButton.snp.bottom).offset(28)
             make.leading.trailing.equalToSuperview().inset(h)
             make.height.equalTo(20)
         }
-
+        
         socialStackView.snp.makeConstraints { make in
             make.top.equalTo(dividerView.snp.bottom).offset(h)
             make.centerX.equalToSuperview()
         }
-
+        
         bottomPromptView.snp.makeConstraints { make in
             make.centerX.equalToSuperview()
             make.bottom.equalTo(view.safeAreaLayoutGuide).offset(-AppConstants.Spacing.medium)
         }
     }
-
+    
     private func bind() {
         emailField.onTextChange = { [weak self] _ in self?.viewModel.clearError() }
         passwordField.onTextChange = { [weak self] _ in self?.viewModel.clearError() }
-
+        
         viewModel.$isLoading
             .receive(on: DispatchQueue.main)
             .sink { [weak self] loading in
                 self?.applyLoading(loading)
             }
             .store(in: &cancellables)
-
+        
         viewModel.$errorMessage
             .receive(on: DispatchQueue.main)
             .compactMap { $0 }
@@ -215,7 +207,7 @@ final class LoginViewController: UIViewController {
                 self?.showError(message)
             }
             .store(in: &cancellables)
-
+        
         viewModel.$errorMessage
             .receive(on: DispatchQueue.main)
             .filter { $0 == nil || $0?.isEmpty == true }
@@ -224,11 +216,11 @@ final class LoginViewController: UIViewController {
             }
             .store(in: &cancellables)
     }
-
+    
     @objc private func dismissKeyboard() {
         view.endEditing(true)
     }
-
+    
     private func clearError() {
         guard !errorLabel.isHidden else { return }
         errorLabel.isHidden = true
@@ -238,7 +230,7 @@ final class LoginViewController: UIViewController {
             self.view.layoutIfNeeded()
         }
     }
-
+    
     private func showError(_ message: String) {
         errorLabel.text = message
         errorLabel.isHidden = false
@@ -247,18 +239,18 @@ final class LoginViewController: UIViewController {
             self.view.layoutIfNeeded()
         }
     }
-
+    
     private func applyLoading(_ loading: Bool) {
         loginButton.isEnabled = !loading
         loginButton.alpha = loading ? 0.6 : 1.0
         emailField.textField.isEnabled = !loading
         passwordField.textField.isEnabled = !loading
     }
-
+    
     @objc private func backTapped() {
         navigationController?.popViewController(animated: true)
     }
-
+    
     @objc private func forgotPasswordTapped() {
         view.endEditing(true)
         let alert = UIAlertController(
@@ -303,15 +295,15 @@ final class LoginViewController: UIViewController {
         })
         present(alert, animated: true)
     }
-
+    
     @objc private func socialTapped(_ sender: UIButton) {}
-
+    
     @objc private func loginTapped() {
         view.endEditing(true)
-
+        
         let email = emailField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let password = passwordField.text ?? ""
-
+        
         switch viewModel.validate(email: email, password: password) {
         case .valid:
             break
@@ -325,9 +317,9 @@ final class LoginViewController: UIViewController {
             showError("Please enter a valid email and password.")
             return
         }
-
+        
         clearError()
-
+        
         Task {
             await viewModel.login(email: email, password: password)
             await MainActor.run {

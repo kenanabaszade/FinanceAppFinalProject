@@ -1,54 +1,61 @@
+//
+//  TransactionRowView.swift
+//  FinanceApp
+//
+//  Created by Macbook on 18.02.26.
+//
+
 import UIKit
 import SnapKit
 
 final class TransactionRowView: UIView {
-
+    
     private let iconContainer: UIView = {
         let v = UIView()
         v.backgroundColor = AppConstants.Colors.transactionIconBg
         v.layer.cornerRadius = AppConstants.Dashboard.transactionIconSize / 2
         return v
     }()
-
+    
     private let iconImageView: UIImageView = {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFit
         iv.tintColor = AppConstants.Colors.mandarinOrange
         return iv
     }()
-
+    
     private let merchantLabel: UILabel = {
         let l = UILabel()
         l.font = .systemFont(ofSize: 16, weight: .semibold)
         l.textColor = AppConstants.Colors.authTitle
         return l
     }()
-
+    
     private let dateLabel: UILabel = {
         let l = UILabel()
         l.font = .systemFont(ofSize: 13, weight: .regular)
         l.textColor = AppConstants.Colors.authSubtitle
         return l
     }()
-
+    
     private let amountLabel: UILabel = {
         let l = UILabel()
         l.font = .systemFont(ofSize: 16, weight: .bold)
         l.textAlignment = .right
         return l
     }()
-
+    
     init(transaction: TransactionRecord) {
         super.init(frame: .zero)
         setupHierarchy()
         setupLayout()
         configure(with: transaction)
     }
-
+    
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-
+    
     private func setupHierarchy() {
         addSubview(iconContainer)
         iconContainer.addSubview(iconImageView)
@@ -56,7 +63,7 @@ final class TransactionRowView: UIView {
         addSubview(dateLabel)
         addSubview(amountLabel)
     }
-
+    
     private func setupLayout() {
         self.snp.makeConstraints { make in
             make.height.equalTo(AppConstants.Dashboard.transactionRowHeight)
@@ -84,20 +91,20 @@ final class TransactionRowView: UIView {
             make.centerY.equalToSuperview()
         }
     }
-
+    
     private func configure(with transaction: TransactionRecord) {
         let config = UIImage.SymbolConfiguration(pointSize: 15, weight: .semibold)
         iconImageView.image = UIImage(systemName: categoryIcon(for: transaction.category, type: transaction.type), withConfiguration: config)
         merchantLabel.text = transaction.merchantName
         dateLabel.text = formatDate(transaction.date)
-
+        
         let symbol: String
         switch transaction.currency {
         case "AZN": symbol = "₼"
         case "USD": symbol = "$"
         default: symbol = transaction.currency
         }
-
+        
         let isOutgoing = transaction.type == .send || transaction.type == .purchase
         let absAmount = abs(transaction.amount)
         if isOutgoing {
@@ -108,7 +115,7 @@ final class TransactionRowView: UIView {
             amountLabel.textColor = AppConstants.Colors.mandarinOrange
         }
     }
-
+    
     private func categoryIcon(for category: String?, type: TransactionType) -> String {
         switch type {
         case .send:
@@ -130,7 +137,7 @@ final class TransactionRowView: UIView {
             }
         }
     }
-
+    
     private func formatDate(_ date: Date) -> String {
         let cal = Calendar.current
         if cal.isDateInToday(date) {

@@ -2,6 +2,8 @@
 //  Card.swift
 //  FinanceApp
 //
+//  Created by Macbook on 06.02.26.
+//
 
 import Foundation
 import FirebaseFirestore
@@ -28,6 +30,7 @@ struct CardPayload: Codable {
     var currency: String?
     var accountId: String?
     var brand: CardBrand?
+    var isBlocked: Bool?
 }
 
 extension CardPayload {
@@ -55,7 +58,8 @@ extension CardPayload {
             createdAt: createdAt,
             currency: currency,
             accountId: accountId,
-            brand: brand
+            brand: brand,
+            isBlocked: false
         )
     }
 }
@@ -73,6 +77,7 @@ struct Card {
     var currency: String?
     var accountId: String?
     var brand: CardBrand?
+    var isBlocked: Bool
 
     init(id: String, payload: CardPayload) {
         self.id = id
@@ -87,6 +92,7 @@ struct Card {
         self.currency = payload.currency
         self.accountId = payload.accountId
         self.brand = payload.brand
+        self.isBlocked = payload.isBlocked ?? false
     }
 
     init(
@@ -101,7 +107,8 @@ struct Card {
         createdAt: Date,
         currency: String? = nil,
         accountId: String? = nil,
-        brand: CardBrand? = nil
+        brand: CardBrand? = nil,
+        isBlocked: Bool = false
     ) {
         self.id = id
         self.userId = userId
@@ -115,6 +122,7 @@ struct Card {
         self.currency = currency
         self.accountId = accountId
         self.brand = brand
+        self.isBlocked = isBlocked
     }
 
     func toPayload() -> CardPayload {
@@ -129,7 +137,26 @@ struct Card {
             createdAt: createdAt,
             currency: currency,
             accountId: accountId,
-            brand: brand
+            brand: brand,
+            isBlocked: isBlocked
+        )
+    }
+ 
+    func with(isBlocked newValue: Bool) -> Card {
+        Card(
+            id: id,
+            userId: userId,
+            name: name,
+            type: type,
+            lastFourDigits: lastFourDigits,
+            maskedNumber: maskedNumber,
+            fullNumber: fullNumber,
+            expiryDate: expiryDate,
+            createdAt: createdAt,
+            currency: currency,
+            accountId: accountId,
+            brand: brand,
+            isBlocked: newValue
         )
     }
 }

@@ -1,3 +1,11 @@
+//
+//  EnterAmountViewModel.swift
+//  FinanceApp
+//
+//  Created by Macbook on 28.02.26.
+//
+
+
 import Foundation
 import Combine
 internal import FirebaseFirestoreInternal
@@ -18,26 +26,26 @@ final class EnterAmountViewModel: ObservableObject {
     @Published private(set) var errorMessage: String?
     @Published var amountText = ""
     @Published var selectedCardWithBalance: CardWithBalance?
-
+    
     let recipient: SendMoneyRecipient
-
+    
     var amount: Double {
         Double(amountText.replacingOccurrences(of: ",", with: ".")) ?? 0
     }
-
+    
     var canSend: Bool {
         amount > 0 && selectedCardWithBalance != nil && (selectedCardWithBalance?.balance ?? 0) >= amount
     }
-
+    
     private let authService: AuthServiceProtocol
     private let firestoreService: FirestoreServiceProtocol
-
+    
     init(recipient: SendMoneyRecipient, authService: AuthServiceProtocol, firestoreService: FirestoreServiceProtocol) {
         self.recipient = recipient
         self.authService = authService
         self.firestoreService = firestoreService
     }
-
+    
     func loadCardsAndAccounts() async {
         guard let userId = authService.currentUserId() else { return }
         isLoading = true
@@ -49,22 +57,31 @@ final class EnterAmountViewModel: ObservableObject {
             )
             let accountMap = Dictionary(uniqueKeysWithValues: accounts.map { ($0.id, $0) })
             var list: [CardWithBalance] = []
-            for card in cards where card.id != "placeholder" && card.id != "placeholder2" {
+            
+            var cardsByAccount: [String: [Card]] = [:]
+            for card in cards where card.id != "placeholder" && card.id != "placeholder2" && !card.isBlocked {
                 let currency = card.currency ?? "AZN"
-                let canonicalId = "\(userId)_\(currency)"
-                let accountsForCurrency = accounts.filter { $0.currency == currency }
-                let totalBalance = accountsForCurrency.reduce(0) { $0 + $1.amount }
-                let accForTransfer: Account? = accountsForCurrency.max(by: { $0.amount < $1.amount })
-                    ?? accountMap[canonicalId]
-                    ?? card.accountId.flatMap { accountMap[$0] }
-                    ?? accounts.first { $0.currency == currency }
-                let accountForDisplay: Account
-                if let acc = accForTransfer {
-                    accountForDisplay = Account(id: acc.id, userId: acc.userId, currency: acc.currency, amount: totalBalance, updatedAt: acc.updatedAt)
-                } else {
-                    accountForDisplay = Account(id: canonicalId, userId: userId, currency: currency, amount: totalBalance, updatedAt: Date())
+                
+                
+                let accountId = card.accountId ?? "\(userId)_\(currency)"
+                cardsByAccount[accountId, default: []].append(card)
+            }
+            
+            
+            for (accountId, accountCards) in cardsByAccount {
+                let currency = accountCards.first?.currency ?? "AZN"
+                let acc = accountMap[accountId] ?? accountMap["\(userId)_\(currency)"]
+                let balance = acc?.amount ?? 0
+                let accountForDisplay = Account(
+                    id: accountId,
+                    userId: userId,
+                    currency: currency,
+                    amount: balance,
+                    updatedAt: acc?.updatedAt ?? Date()
+                )
+                if let firstCard = accountCards.first {
+                    list.append(CardWithBalance(card: firstCard, account: accountForDisplay))
                 }
-                list.append(CardWithBalance(card: card, account: accountForDisplay))
             }
             cardsWithBalance = list
             selectedCardWithBalance = list.first
@@ -73,7 +90,7 @@ final class EnterAmountViewModel: ObservableObject {
             errorMessage = "Could not load cards"
         }
     }
-
+    
     func sendTransfer() async {
         guard let userId = authService.currentUserId() else { return }
         guard let recipientId = recipient.userId else {
@@ -84,7 +101,11 @@ final class EnterAmountViewModel: ObservableObject {
             errorMessage = "Please select a card"
             return
         }
-        guard let fromAccountId = cardWithBalance.account?.id ?? cardWithBalance.card.accountId else {
+        guard !cardWithBalance.card.isBlocked else {
+            errorMessage = "This card is blocked. Unblock it in Card Management to send money."
+            return
+        }
+        guard let fromAccountId = cardWithBalance.account?.id ?? cardWithBalance.card.accountId, !fromAccountId.isEmpty else {
             errorMessage = "This card has no linked account"
             return
         }
@@ -113,7 +134,7 @@ final class EnterAmountViewModel: ObservableObject {
             errorMessage = error.localizedDescription
         }
     }
-
+    
     private func getCurrentUserName() async -> String? {
         guard let uid = authService.currentUserId(), let user = try? await firestoreService.getUser(uid: uid) else { return nil }
         return [user.firstName, user.lastName].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " ")

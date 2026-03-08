@@ -2,24 +2,26 @@
 //  EnterPaymentViewController.swift
 //  FinanceApp
 //
+//  Created by Macbook on 3.03.26.
+//
 
 import UIKit
 import SnapKit
 import Combine
 
 final class EnterPaymentViewController: UIViewController {
-
+    
     weak var coordinator: OnboardingCoordinator?
     private let viewModel: EnterPaymentViewModel
     private var cancellables = Set<AnyCancellable>()
-
+    
     private let scrollView: UIScrollView = {
         let sv = UIScrollView()
         sv.keyboardDismissMode = .onDrag
         return sv
     }()
     private let contentView = UIView()
-
+    
     private let categoryLabel: UILabel = {
         let l = UILabel()
         l.text = "Paying"
@@ -28,7 +30,7 @@ final class EnterPaymentViewController: UIViewController {
         l.textAlignment = .center
         return l
     }()
-
+    
     private let categoryNameLabel: UILabel = {
         let l = UILabel()
         l.font = .systemFont(ofSize: 22, weight: .semibold)
@@ -36,7 +38,7 @@ final class EnterPaymentViewController: UIViewController {
         l.textAlignment = .center
         return l
     }()
-
+    
     private let amountField: UITextField = {
         let tf = UITextField()
         tf.placeholder = "0.00"
@@ -48,7 +50,7 @@ final class EnterPaymentViewController: UIViewController {
         tf.layer.cornerRadius = AppConstants.Sizes.cornerRadius
         return tf
     }()
-
+    
     private let currencyLabel: UILabel = {
         let l = UILabel()
         l.font = .systemFont(ofSize: 17, weight: .medium)
@@ -56,19 +58,19 @@ final class EnterPaymentViewController: UIViewController {
         l.textAlignment = .center
         return l
     }()
-
+    
     private let referenceSectionLabel: UILabel = {
         let l = UILabel()
         l.font = .systemFont(ofSize: 13, weight: .semibold)
         l.textColor = AppConstants.Colors.authSubtitle
         return l
     }()
-
+    
     private let referenceContainerView: UIView = {
         let v = UIView()
         return v
     }()
-
+    
     private let prefixButton: UIButton = {
         let b = UIButton(type: .system)
         b.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
@@ -78,7 +80,7 @@ final class EnterPaymentViewController: UIViewController {
         b.contentHorizontalAlignment = .center
         return b
     }()
-
+    
     private let referenceField: UITextField = {
         let tf = UITextField()
         tf.font = .systemFont(ofSize: 17, weight: .regular)
@@ -91,7 +93,7 @@ final class EnterPaymentViewController: UIViewController {
         tf.rightViewMode = .always
         return tf
     }()
-
+    
     private let accountsSectionLabel: UILabel = {
         let l = UILabel()
         l.text = "Pay from"
@@ -99,7 +101,7 @@ final class EnterPaymentViewController: UIViewController {
         l.textColor = AppConstants.Colors.authSubtitle
         return l
     }()
-
+    
     private let accountsTableView: UITableView = {
         let tv = UITableView(frame: .zero, style: .plain)
         tv.isScrollEnabled = false
@@ -109,7 +111,7 @@ final class EnterPaymentViewController: UIViewController {
         tv.separatorInset = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 16)
         return tv
     }()
-
+    
     private let payButton: UIButton = {
         let b = UIButton(type: .system)
         b.setTitle("Pay", for: .normal)
@@ -119,7 +121,7 @@ final class EnterPaymentViewController: UIViewController {
         b.layer.cornerRadius = AppConstants.Sizes.cornerRadius
         return b
     }()
-
+    
     private let errorLabel: UILabel = {
         let l = UILabel()
         l.font = .systemFont(ofSize: 13, weight: .regular)
@@ -129,20 +131,20 @@ final class EnterPaymentViewController: UIViewController {
         l.isHidden = true
         return l
     }()
-
+    
     private let activityIndicator: UIActivityIndicatorView = {
         let v = UIActivityIndicatorView(style: .medium)
         v.hidesWhenStopped = true
         return v
     }()
-
+    
     init(viewModel: EnterPaymentViewModel) {
         self.viewModel = viewModel
         super.init(nibName: nil, bundle: nil)
     }
-
+    
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = AppConstants.Colors.dashboardBackground
@@ -161,7 +163,7 @@ final class EnterPaymentViewController: UIViewController {
         Task { await viewModel.loadAccounts() }
         updatePayButton()
     }
-
+    
     private func setupLayout() {
         view.addSubview(scrollView)
         scrollView.addSubview(contentView)
@@ -177,7 +179,7 @@ final class EnterPaymentViewController: UIViewController {
         contentView.addSubview(payButton)
         contentView.addSubview(errorLabel)
         view.addSubview(activityIndicator)
-
+        
         let padding: CGFloat = AppConstants.Auth.horizontalPadding
         scrollView.snp.makeConstraints { make in
             make.edges.equalTo(view.safeAreaLayoutGuide)
@@ -237,7 +239,7 @@ final class EnterPaymentViewController: UIViewController {
             make.center.equalToSuperview()
         }
     }
-
+    
     private func bind() {
         viewModel.$accounts
             .receive(on: DispatchQueue.main)
@@ -289,7 +291,7 @@ final class EnterPaymentViewController: UIViewController {
             }
             .store(in: &cancellables)
     }
-
+    
     private func setupReferenceInput() {
         referenceSectionLabel.text = viewModel.category.inputLabel
         switch viewModel.category.inputKind {
@@ -315,7 +317,7 @@ final class EnterPaymentViewController: UIViewController {
             referenceField.keyboardType = keyboardNumber ? .numberPad : .default
         }
     }
-
+    
     @objc private func prefixTapped() {
         guard case .phoneWithPrefix(let prefixes) = viewModel.category.inputKind else { return }
         let sheet = UIAlertController(title: "Select prefix", message: nil, preferredStyle: .actionSheet)
@@ -333,27 +335,27 @@ final class EnterPaymentViewController: UIViewController {
         }
         present(sheet, animated: true)
     }
-
+    
     @objc private func referenceChanged() {
         viewModel.referenceText = referenceField.text ?? ""
     }
-
+    
     private func updateAccountsTableHeight(count: Int) {
         let h = count * 56
         accountsTableView.snp.updateConstraints { make in
             make.height.equalTo(max(0, h))
         }
     }
-
+    
     private func updateCurrencyLabel() {
         currencyLabel.text = viewModel.selectedAccount?.currency ?? "AZN"
     }
-
+    
     private func updatePayButton() {
         payButton.isEnabled = viewModel.canPay
         payButton.alpha = viewModel.canPay ? 1 : 0.6
     }
-
+    
     private func showSuccessAndPop() {
         let alert = UIAlertController(title: "Payment successful", message: "Amount deducted from your balance.", preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "OK", style: .default) { [weak self] _ in
@@ -361,11 +363,11 @@ final class EnterPaymentViewController: UIViewController {
         })
         present(alert, animated: true)
     }
-
+    
     @objc private func amountChanged() {
         viewModel.amountText = amountField.text ?? ""
     }
-
+    
     @objc private func payTapped() {
         Task { await viewModel.pay() }
     }
@@ -393,7 +395,7 @@ private final class AccountSelectionCell: UITableViewCell {
     private let titleLabel = UILabel()
     private let balanceLabel = UILabel()
     private let checkmark = UIImageView(image: UIImage(systemName: "checkmark.circle.fill"))
-
+    
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         backgroundColor = AppConstants.Colors.authInputBackground

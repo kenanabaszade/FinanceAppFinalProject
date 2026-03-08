@@ -1,7 +1,13 @@
+//
+//  FirestoreService.swift
+//  FinanceApp
+//
+//  Created by Macbook on 23.02.26.
+//
+
 import Foundation
 import FirebaseFirestore
-
-/// Parameters for a peer-to-peer money transfer.
+ 
 struct TransferRequest {
     let senderId: String
     let recipientId: String
@@ -9,10 +15,8 @@ struct TransferRequest {
     let recipientDisplayName: String
     let amount: Double
     let currency: String
-    /// Sender's account document ID to debit from (e.g. from selected card’s accountId).
     let fromAccountId: String
-    /// Recipient's chosen account to receive into. If nil, uses recipientId_currency.
-    let recipientAccountId: String?
+    let recipientAccountId: String
 }
 
 protocol FirestoreServiceProtocol {
@@ -22,26 +26,43 @@ protocol FirestoreServiceProtocol {
     func getAllRecipients(excludingUserId: String) async throws -> [User]
     func getAccounts(userId: String) async throws -> [Account]
     func getCards(userId: String, source: FirestoreSource?) async throws -> [Card]
-    /// Creates an account and a linked card; returns the new Card.
     func addCard(userId: String, name: String, type: CardType, brand: CardBrand, fullNumber: String, expiryDate: String, currency: String) async throws -> Card
-    /// Deletes a card from Firestore. Does not delete the linked account (balance may remain).
+    
     func deleteCard(cardId: String, userId: String) async throws
+
+    func updateCardBlocked(cardId: String, userId: String, isBlocked: Bool) async throws
+    
     func getRecentTransactions(userId: String, limit: Int) async throws -> [TransactionRecord]
+    
     func getUnreadNotificationsCount(userId: String) async throws -> Int
+    
     func createNotification(userId: String, title: String, body: String?, type: String?, transactionId: String?, amount: Double?, currency: String?) async throws
+    
     func getNotifications(userId: String, limit: Int) async throws -> [NotificationRecord]
+    
     func markNotificationAsRead(notificationId: String) async throws
+    
     func markAllNotificationsAsRead(userId: String) async throws
-    /// Transfer money from sender’s account to recipient’s account. Creates transaction records for both.
+     
     func transfer(_ request: TransferRequest) async throws
+    
     func createPendingTransferRequest(senderId: String, senderDisplayName: String, recipientId: String, recipientDisplayName: String, amount: Double, currency: String, fromAccountId: String) async throws -> String
+    
     func getPendingTransferRequests(recipientId: String) async throws -> [PendingTransferRequest]
+    
     func getPendingTransferRequest(requestId: String) async throws -> PendingTransferRequest?
+    
     func acceptPendingTransferRequest(requestId: String, recipientId: String, recipientAccountId: String) async throws
+    
     func rejectPendingTransferRequest(requestId: String, recipientId: String) async throws
+    
+     
+    func acceptMoneyRequest(requestId: String, senderId: String, senderAccountId: String?, recipientAccountId: String) async throws
+    
     func topUp(userId: String, accountId: String, amount: Double, currency: String) async throws
-    /// Deduct from user's account for a payment (e.g. bill, merchant). Creates a transaction record.
+    
     func payFromAccount(userId: String, accountId: String, amount: Double, currency: String, merchantName: String, category: String, reference: String?) async throws
+    
 }
 
 enum FirestoreCollection {
@@ -85,9 +106,7 @@ class FirestoreService: FirestoreServiceProtocol {
                 users.append(user)
             }
         }
-        #if DEBUG
-        print("[SendMoney] Firestore users: total docs=\(allDocs.count), excluding self=\(others.count), decoded=\(users.count). Current uid=\(excludingUserId)")
-        #endif
+        
         return users
     }
 
@@ -136,7 +155,7 @@ class FirestoreService: FirestoreServiceProtocol {
     }
 
     func getCards(userId: String, source: FirestoreSource? = nil) async throws -> [Card] {
-        var query = db.collection(FirestoreCollection.cards)
+        let query = db.collection(FirestoreCollection.cards)
             .whereField("userId", isEqualTo: userId)
         let snapshot: QuerySnapshot
         if let src = source {
@@ -153,14 +172,9 @@ class FirestoreService: FirestoreServiceProtocol {
 
     func addCard(userId: String, name: String, type: CardType, brand: CardBrand, fullNumber: String, expiryDate: String, currency: String) async throws -> Card {
         let now = Date()
-        // Use deterministic ID so transfer can find/update the same account (userId_currency)
-        let accountDocId = "\(userId)_\(currency)"
-        let accountRef = db.collection(FirestoreCollection.accounts).document(accountDocId)
-        let existingDoc = try await accountRef.getDocument()
-        if !existingDoc.exists {
-            let accountPayload = AccountPayload(userId: userId, currency: currency, amount: 0, updatedAt: now)
-            try accountRef.setData(from: accountPayload)
-        }
+        let accountRef = db.collection(FirestoreCollection.accounts).document()
+        let accountPayload = AccountPayload(userId: userId, currency: currency, amount: 0, updatedAt: now)
+        try accountRef.setData(from: accountPayload)
 
         let lastFour = String(fullNumber.suffix(4))
         let maskedNumber = "••••  ••••  ••••  \(lastFour)"
@@ -191,7 +205,27 @@ class FirestoreService: FirestoreServiceProtocol {
               docUserId == userId else {
             throw NSError(domain: "FirestoreService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Card not found or access denied"])
         }
+        let accountId = data["accountId"] as? String
         try await ref.delete()
+        if let accountId = accountId, !accountId.isEmpty {
+            let accountRef = db.collection(FirestoreCollection.accounts).document(accountId)
+            let accDoc = try await accountRef.getDocument()
+            if accDoc.exists, (accDoc.data()?["userId"] as? String) == userId {
+                try await accountRef.delete()
+            }
+        }
+    }
+
+    func updateCardBlocked(cardId: String, userId: String, isBlocked: Bool) async throws {
+        let ref = db.collection(FirestoreCollection.cards).document(cardId)
+        let doc = try await ref.getDocument()
+        guard doc.exists,
+              let data = doc.data(),
+              let docUserId = data["userId"] as? String,
+              docUserId == userId else {
+            throw NSError(domain: "FirestoreService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Card not found or access denied"])
+        }
+        try await ref.updateData(["isBlocked": isBlocked])
     }
 
     func getRecentTransactions(userId: String, limit: Int = 20) async throws -> [TransactionRecord] {
@@ -304,6 +338,12 @@ class FirestoreService: FirestoreServiceProtocol {
                 do {
                     let accounts = self.db.collection(FirestoreCollection.accounts)
                     let transactionsCol = self.db.collection(FirestoreCollection.transactions)
+                     
+                    guard !request.fromAccountId.isEmpty else {
+                        errorPointer?.pointee = NSError(domain: "Transfer", code: -1, userInfo: [NSLocalizedDescriptionKey: "Sender account ID is required"])
+                        return nil
+                    }
+                    
                     let senderAccountRef = accounts.document(request.fromAccountId)
 
                     let senderDoc = try transaction.getDocument(senderAccountRef)
@@ -321,27 +361,75 @@ class FirestoreService: FirestoreServiceProtocol {
                         errorPointer?.pointee = NSError(domain: "Transfer", code: -1, userInfo: [NSLocalizedDescriptionKey: "Insufficient balance"])
                         return nil
                     }
-
-                    // Recipient's chosen account, or default userId_currency
-                    let recipientDocId = request.recipientAccountId ?? "\(request.recipientId)_\(request.currency)"
-                    let recipientAccountRef = accounts.document(recipientDocId)
+ 
+                    guard !request.recipientAccountId.isEmpty else {
+                        errorPointer?.pointee = NSError(domain: "Transfer", code: -1, userInfo: [NSLocalizedDescriptionKey: "Recipient account ID is required"])
+                        return nil
+                    }
+                    let recipientAccountId = request.recipientAccountId
+                    let recipientAccountRef = accounts.document(recipientAccountId)
                     let recipientDoc = try transaction.getDocument(recipientAccountRef)
-                    if let chosenId = request.recipientAccountId {
-                        guard recipientDoc.exists,
-                              let recData = recipientDoc.data(),
-                              let recUserId = recData["userId"] as? String,
-                              recUserId == request.recipientId,
-                              let recCurrency = recData["currency"] as? String,
-                              recCurrency == request.currency else {
-                            errorPointer?.pointee = NSError(domain: "Transfer", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid recipient account"])
-                            return nil
-                        }
+                     
+                    guard recipientDoc.exists,
+                          let recData = recipientDoc.data(),
+                          let recUserId = recData["userId"] as? String,
+                          recUserId == request.recipientId,
+                          let recCurrency = recData["currency"] as? String,
+                          recCurrency == request.currency else {
+                      
+                        let newAccountData: [String: Any] = [
+                            "userId": request.recipientId,
+                            "currency": request.currency,
+                            "amount": request.amount,
+                            "updatedAt": Timestamp(date: Date())
+                        ]
+                        transaction.setData(newAccountData, forDocument: recipientAccountRef)
+                        let recipientCurrentAmount = request.amount
+                        let now = Date()
+                        let newSenderAmount = currentAmount - request.amount
+                         
+                        transaction.updateData([
+                            "amount": newSenderAmount,
+                            "updatedAt": Timestamp(date: now)
+                        ], forDocument: senderAccountRef)
+                         
+                        let date = Timestamp(date: now)
+                        let senderTxRef = transactionsCol.document()
+                        let senderTxPayload: [String: Any] = [
+                            "userId": request.senderId,
+                            "amount": -request.amount,
+                            "currency": request.currency,
+                            "merchantName": request.recipientDisplayName,
+                            "counterpartyUserId": request.recipientId,
+                            "type": TransactionType.send.rawValue,
+                            "date": date,
+                            "createdAt": date
+                        ]
+                        transaction.setData(senderTxPayload, forDocument: senderTxRef)
+                        
+                        let recipientTxRef = transactionsCol.document()
+                        let recipientTxPayload: [String: Any] = [
+                            "userId": request.recipientId,
+                            "amount": request.amount,
+                            "currency": request.currency,
+                            "merchantName": request.senderDisplayName,
+                            "counterpartyUserId": request.senderId,
+                            "type": TransactionType.receive.rawValue,
+                            "date": date,
+                            "createdAt": date
+                        ]
+                        transaction.setData(recipientTxPayload, forDocument: recipientTxRef)
+                        
+                        return nil
                     }
                     let recipientCurrentAmount: Double
+                    let accountExists: Bool
                     if recipientDoc.exists, let data = recipientDoc.data(), let amt = data["amount"] as? Double {
                         recipientCurrentAmount = amt
+                        accountExists = true
                     } else {
                         recipientCurrentAmount = 0
+                        accountExists = false
                     }
 
                     let now = Date()
@@ -352,15 +440,14 @@ class FirestoreService: FirestoreServiceProtocol {
                     ], forDocument: senderAccountRef)
 
                     let newRecipientAmount = recipientCurrentAmount + request.amount
-                    if recipientDoc.exists {
+                    if accountExists {
                         transaction.updateData([
                             "amount": newRecipientAmount,
                             "updatedAt": Timestamp(date: now)
                         ], forDocument: recipientAccountRef)
                     } else {
-                        transaction.setData([
-                            "userId": request.recipientId,
-                            "currency": request.currency,
+                       
+                        transaction.updateData([
                             "amount": newRecipientAmount,
                             "updatedAt": Timestamp(date: now)
                         ], forDocument: recipientAccountRef)
@@ -438,15 +525,18 @@ class FirestoreService: FirestoreServiceProtocol {
         ]
         try await ref.setData(data)
         let symbol = currency == "AZN" ? "₼" : (currency == "USD" ? "$" : currency)
-        try await createNotification(
-            userId: recipientId,
-            title: "\(senderDisplayName) wants to send you \(String(format: "%.2f", amount)) \(symbol)",
-            body: "Choose which card to receive into",
-            type: "transfer_request",
-            transactionId: ref.documentID,
-            amount: amount,
-            currency: currency
-        )
+         
+        if !fromAccountId.hasPrefix("request_") {
+            try await createNotification(
+                userId: recipientId,
+                title: "\(senderDisplayName) wants to send you \(String(format: "%.2f", amount)) \(symbol)",
+                body: "Choose which card to receive into",
+                type: "transfer_request",
+                transactionId: ref.documentID,
+                amount: amount,
+                currency: currency
+            )
+        }
         return ref.documentID
     }
 
@@ -455,7 +545,7 @@ class FirestoreService: FirestoreServiceProtocol {
             .whereField("recipientId", isEqualTo: recipientId)
             .whereField("status", isEqualTo: PendingTransferStatus.pending.rawValue)
             .order(by: "createdAt", descending: true)
-            .getDocuments()
+            .getDocuments(source: .server)
         return snapshot.documents.compactMap { doc -> PendingTransferRequest? in
             let data = doc.data()
             guard let senderId = data["senderId"] as? String,
@@ -489,7 +579,7 @@ class FirestoreService: FirestoreServiceProtocol {
     }
 
     func getPendingTransferRequest(requestId: String) async throws -> PendingTransferRequest? {
-        let doc = try await db.collection(FirestoreCollection.pendingTransferRequests).document(requestId).getDocument()
+        let doc = try await db.collection(FirestoreCollection.pendingTransferRequests).document(requestId).getDocument(source: .server)
         guard doc.exists, let data = doc.data() else { return nil }
         guard let senderId = data["senderId"] as? String,
               let senderDisplayName = data["senderDisplayName"] as? String,
@@ -544,6 +634,13 @@ class FirestoreService: FirestoreServiceProtocol {
               statusStr == PendingTransferStatus.pending.rawValue else {
             throw NSError(domain: "FirestoreService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid or already processed request"])
         }
+        
+         
+        if fromAccountId.hasPrefix("request_") {
+           
+            throw NSError(domain: "FirestoreService", code: -2, userInfo: [NSLocalizedDescriptionKey: "SENDER_MUST_SELECT_ACCOUNT"])
+        }
+        
         let transferReq = TransferRequest(
             senderId: senderId,
             recipientId: recipientId,
@@ -555,6 +652,52 @@ class FirestoreService: FirestoreServiceProtocol {
             recipientAccountId: recipientAccountId
         )
         try await transfer(transferReq)
+        try await ref.updateData([
+            "status": PendingTransferStatus.accepted.rawValue,
+            "recipientAccountId": recipientAccountId
+        ])
+    }
+  
+    func acceptMoneyRequest(requestId: String, senderId: String, senderAccountId: String?, recipientAccountId: String) async throws {
+        let ref = db.collection(FirestoreCollection.pendingTransferRequests).document(requestId)
+        let doc = try await ref.getDocument()
+        guard doc.exists,
+              let data = doc.data(),
+              let recipientId = data["recipientId"] as? String,
+              let recipientDisplayName = data["recipientDisplayName"] as? String,
+              let senderDisplayName = data["senderDisplayName"] as? String,
+              let amount = data["amount"] as? Double,
+              let currency = data["currency"] as? String,
+              let fromAccountId = data["fromAccountId"] as? String,
+              let statusStr = data["status"] as? String,
+              statusStr == PendingTransferStatus.pending.rawValue,
+              fromAccountId.hasPrefix("request_") else {
+            throw NSError(domain: "FirestoreService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid or already processed request"])
+        }
+        let fromAccount = senderAccountId ?? "\(senderId)_\(currency)"
+        let transferReq = TransferRequest(
+            senderId: senderId,
+            recipientId: recipientId,
+            senderDisplayName: senderDisplayName,
+            recipientDisplayName: recipientDisplayName,
+            amount: amount,
+            currency: currency,
+            fromAccountId: fromAccount,
+            recipientAccountId: recipientAccountId
+        )
+        try await transfer(transferReq)
+        
+        let symbol = currency == "AZN" ? "₼" : (currency == "USD" ? "$" : currency)
+        try await createNotification(
+            userId: recipientId,
+            title: "You received \(String(format: "%.2f", amount)) \(symbol) from \(senderDisplayName)",
+            body: "Money request accepted and sent",
+            type: "transfer_received",
+            transactionId: nil,
+            amount: amount,
+            currency: currency
+        )
+        
         try await ref.updateData([
             "status": PendingTransferStatus.accepted.rawValue,
             "recipientAccountId": recipientAccountId

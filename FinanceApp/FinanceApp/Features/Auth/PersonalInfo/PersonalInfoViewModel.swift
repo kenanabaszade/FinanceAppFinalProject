@@ -1,21 +1,28 @@
+//
+//  PersonalInfoViewController.swift
+//  FinanceApp
+//
+//  Created by Macbook on 27.02.26.
+//
+
 import Foundation
 import Combine
 
 @MainActor
 final class PersonalInfoViewModel: ObservableObject {
-
+    
     @Published private(set) var isLoading = false
     @Published var errorMessage: String?
     @Published private(set) var submitSuccess = false
-
+    
     private let authService: AuthServiceProtocol
     private let firestoreService: FirestoreServiceProtocol
-
+    
     init(authService: AuthServiceProtocol, firestoreService: FirestoreServiceProtocol) {
         self.authService = authService
         self.firestoreService = firestoreService
     }
-
+    
     func validate(firstName: String, lastName: String) -> String? {
         let first = firstName.trimmingCharacters(in: .whitespacesAndNewlines)
         let last = lastName.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -27,7 +34,7 @@ final class PersonalInfoViewModel: ObservableObject {
         }
         return nil
     }
-
+    
     func submit(firstName: String, lastName: String) async {
         let first = firstName.trimmingCharacters(in: .whitespacesAndNewlines)
         let last = lastName.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -35,7 +42,7 @@ final class PersonalInfoViewModel: ObservableObject {
             errorMessage = error
             return
         }
-
+        
         isLoading = true
         errorMessage = nil
         do {
@@ -57,11 +64,11 @@ final class PersonalInfoViewModel: ObservableObject {
             errorMessage = error.localizedDescription
         }
     }
-
+    
     func clearError() {
         errorMessage = nil
     }
-
+    
     private func isLettersOnly(_ string: String) -> Bool {
         let allowed = CharacterSet.letters.union(.whitespaces)
         return string.unicodeScalars.allSatisfy { allowed.contains($0) }

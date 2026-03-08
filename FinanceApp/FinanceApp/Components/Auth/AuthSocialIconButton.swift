@@ -2,30 +2,30 @@ import UIKit
 import SnapKit
 
 final class AuthSocialIconButton: UIButton {
-
+    
     enum Provider {
         case google
         case apple
     }
-
+    
     private let iconContainer: UIView = {
         let v = UIView()
         v.isUserInteractionEnabled = false
         return v
     }()
-
+    
     init(provider: Provider) {
         super.init(frame: .zero)
         backgroundColor = AppConstants.Colors.authSocialBackground
         layer.cornerRadius = AppConstants.Auth.socialButtonSize / 2
         layer.borderWidth = 1
         layer.borderColor = AppConstants.Colors.authInputBorder.cgColor
-
+        
         addSubview(iconContainer)
         iconContainer.snp.makeConstraints { make in
             make.center.equalToSuperview()
         }
-
+        
         switch provider {
         case .google:
             let label = UILabel()
@@ -48,16 +48,16 @@ final class AuthSocialIconButton: UIButton {
                 make.edges.equalToSuperview()
             }
         }
-
+        
         snp.makeConstraints { make in
             make.width.height.equalTo(AppConstants.Auth.socialButtonSize)
         }
     }
-
+    
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-
+    
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
         if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
@@ -65,7 +65,7 @@ final class AuthSocialIconButton: UIButton {
                 .resolvedColor(with: traitCollection).cgColor
         }
     }
-
+    
     override var isHighlighted: Bool {
         didSet {
             alpha = isHighlighted ? 0.6 : 1

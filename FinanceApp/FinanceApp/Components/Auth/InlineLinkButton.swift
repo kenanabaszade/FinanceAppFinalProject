@@ -1,7 +1,7 @@
 import UIKit
 
 final class InlineLinkButton: UIButton {
-
+    
     init(title: String) {
         super.init(frame: .zero)
         var config = UIButton.Configuration.plain()
@@ -15,7 +15,7 @@ final class InlineLinkButton: UIButton {
         )
         configuration = config
     }
-
+    
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }

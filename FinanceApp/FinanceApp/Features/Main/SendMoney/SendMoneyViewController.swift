@@ -1,29 +1,33 @@
+//
+//  SendMoneyViewController.swift
+//  FinanceApp
+//
+//  Created by Macbook on 2.27.26.
+//
+
 import UIKit
 import SnapKit
 import Combine
 
 final class SendMoneyViewController: UIViewController {
-
+    
     weak var coordinator: OnboardingCoordinator?
-
+    
     private let viewModel: SendMoneyViewModel
     private var cancellables = Set<AnyCancellable>()
-
+    
     private let navBar: UIView = {
         let v = UIView()
         v.backgroundColor = UIColor.secondarySystemBackground
         return v
     }()
-
+    
     private lazy var backButton: UIButton = {
-        let b = UIButton(type: .system)
-        let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .medium)
-        b.setImage(UIImage(systemName: "chevron.left", withConfiguration: config), for: .normal)
-        b.tintColor = .label
+        let b = AppConstants.makeBackButton()
         b.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
         return b
     }()
-
+    
     private let titleLabel: UILabel = {
         let l = UILabel()
         l.text = "Send Money"
@@ -31,7 +35,7 @@ final class SendMoneyViewController: UIViewController {
         l.textColor = .label
         return l
     }()
-
+    
     private lazy var qrButton: UIButton = {
         let b = UIButton(type: .system)
         let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .medium)
@@ -40,14 +44,14 @@ final class SendMoneyViewController: UIViewController {
         b.addTarget(self, action: #selector(qrTapped), for: .touchUpInside)
         return b
     }()
-
+    
     private let searchContainer: UIView = {
         let v = UIView()
         v.backgroundColor = UIColor.tertiarySystemFill
         v.layer.cornerRadius = 10
         return v
     }()
-
+    
     private let searchIcon: UIImageView = {
         let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .medium)
         let iv = UIImageView(image: UIImage(systemName: "magnifyingglass", withConfiguration: config))
@@ -55,7 +59,7 @@ final class SendMoneyViewController: UIViewController {
         iv.contentMode = .scaleAspectFit
         return iv
     }()
-
+    
     private lazy var searchField: UITextField = {
         let tf = UITextField()
         tf.placeholder = "Search name, phone, or IBAN"
@@ -68,14 +72,14 @@ final class SendMoneyViewController: UIViewController {
         tf.addTarget(self, action: #selector(searchChanged), for: .editingChanged)
         return tf
     }()
-
+    
     private let appUsersSectionContainer: UIView = {
         let v = UIView()
         v.backgroundColor = AppConstants.Colors.mandarinOrange.withAlphaComponent(0.12)
         v.layer.cornerRadius = 12
         return v
     }()
-
+    
     private let appUsersLabel: UILabel = {
         let l = UILabel()
         l.text = "ON \(AppConstants.appName.uppercased())"
@@ -83,7 +87,7 @@ final class SendMoneyViewController: UIViewController {
         l.textColor = AppConstants.Colors.mandarinOrange
         return l
     }()
-
+    
     private lazy var appUsersCollectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .horizontal
@@ -98,7 +102,7 @@ final class SendMoneyViewController: UIViewController {
         cv.contentInset = UIEdgeInsets(top: 0, left: AppConstants.Auth.horizontalPadding, bottom: 0, right: AppConstants.Auth.horizontalPadding)
         return cv
     }()
-
+    
     private let tableView: UITableView = {
         let tv = UITableView(frame: .zero, style: .plain)
         tv.backgroundColor = .clear
@@ -107,18 +111,18 @@ final class SendMoneyViewController: UIViewController {
         tv.sectionIndexBackgroundColor = .clear
         return tv
     }()
-
+    
     private var appUsersSectionHeight: Constraint?
-
+    
     init(viewModel: SendMoneyViewModel) {
         self.viewModel = viewModel
         super.init(nibName: nil, bundle: nil)
     }
-
+    
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = UIColor.systemGroupedBackground
@@ -130,19 +134,19 @@ final class SendMoneyViewController: UIViewController {
         bind()
         Task { await viewModel.loadRecipients() }
     }
-
+    
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         navigationController?.setNavigationBarHidden(true, animated: animated)
         Task { await viewModel.loadRecipients() }
     }
-
+    
     private func setupNavBar() {
         view.addSubview(navBar)
         navBar.addSubview(backButton)
         navBar.addSubview(titleLabel)
         navBar.addSubview(qrButton)
-
+        
         navBar.snp.makeConstraints { make in
             make.top.equalTo(view.safeAreaLayoutGuide.snp.top)
             make.leading.trailing.equalToSuperview()
@@ -162,12 +166,12 @@ final class SendMoneyViewController: UIViewController {
             make.size.equalTo(44)
         }
     }
-
+    
     private func setupSearch() {
         view.addSubview(searchContainer)
         searchContainer.addSubview(searchIcon)
         searchContainer.addSubview(searchField)
-
+        
         searchContainer.snp.makeConstraints { make in
             make.top.equalTo(navBar.snp.bottom).offset(16)
             make.leading.equalTo(view.safeAreaLayoutGuide).offset(20)
@@ -185,12 +189,12 @@ final class SendMoneyViewController: UIViewController {
             make.centerY.equalToSuperview()
         }
     }
-
+    
     private func setupAppUsersSection() {
         view.addSubview(appUsersSectionContainer)
         appUsersSectionContainer.addSubview(appUsersLabel)
         appUsersSectionContainer.addSubview(appUsersCollectionView)
-
+        
         appUsersSectionContainer.snp.makeConstraints { make in
             make.top.equalTo(searchContainer.snp.bottom).offset(20)
             make.leading.equalTo(view.safeAreaLayoutGuide).offset(20)
@@ -207,7 +211,7 @@ final class SendMoneyViewController: UIViewController {
             make.height.equalTo(88)
         }
     }
-
+    
     private func setupTable() {
         view.addSubview(tableView)
         tableView.delegate = self
@@ -222,14 +226,14 @@ final class SendMoneyViewController: UIViewController {
         let leftInset = AppConstants.Auth.horizontalPadding + 44 + 12
         tableView.separatorInset = UIEdgeInsets(top: 0, left: leftInset, bottom: 0, right: AppConstants.Auth.horizontalPadding)
         tableView.estimatedRowHeight = 72
-
+        
         tableView.snp.makeConstraints { make in
             make.top.equalTo(appUsersSectionContainer.snp.bottom).offset(16)
             make.leading.trailing.equalToSuperview()
             make.bottom.equalTo(view.safeAreaLayoutGuide.snp.bottom)
         }
     }
-
+    
     private func bind() {
         viewModel.$allRecipients
             .receive(on: DispatchQueue.main)
@@ -251,7 +255,7 @@ final class SendMoneyViewController: UIViewController {
             }
             .store(in: &cancellables)
     }
-
+    
     private func updateEmptyState() {
         let isEmpty = viewModel.filteredRecipients.isEmpty
         if isEmpty {
@@ -273,36 +277,35 @@ final class SendMoneyViewController: UIViewController {
             tableView.backgroundView = nil
         }
     }
-
+    
     @objc private func backTapped() {
         navigationController?.popViewController(animated: true)
     }
-
+    
     @objc private func qrTapped() {
-        // QR scan for recipient – placeholder
     }
-
+    
     @objc private func searchChanged() {
         viewModel.searchText = searchField.text ?? ""
     }
 }
 
 extension SendMoneyViewController: UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
-
+    
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         viewModel.appUserRecipients.count
     }
-
+    
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: RecentRecipientCell.reuseId, for: indexPath) as! RecentRecipientCell
         cell.configure(with: viewModel.appUserRecipients[indexPath.item])
         return cell
     }
-
+    
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         CGSize(width: 64, height: 88)
     }
-
+    
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         let recipient = viewModel.appUserRecipients[indexPath.item]
         coordinator?.showEnterAmount(recipient: recipient)
@@ -310,25 +313,25 @@ extension SendMoneyViewController: UICollectionViewDataSource, UICollectionViewD
 }
 
 extension SendMoneyViewController: UITableViewDataSource, UITableViewDelegate {
-
+    
     func numberOfSections(in tableView: UITableView) -> Int {
         viewModel.sectionedRecipients.count
     }
-
+    
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         viewModel.sectionedRecipients[section].recipients.count
     }
-
+    
     func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         let header = tableView.dequeueReusableHeaderFooterView(withIdentifier: RecipientSectionHeader.reuseId) as? RecipientSectionHeader
         header?.configure(letter: viewModel.sectionedRecipients[section].letter)
         return header
     }
-
+    
     func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
         28
     }
-
+    
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: RecipientCell.reuseId, for: indexPath) as! RecipientCell
         let recipient = viewModel.sectionedRecipients[indexPath.section].recipients[indexPath.row]
@@ -338,17 +341,17 @@ extension SendMoneyViewController: UITableViewDataSource, UITableViewDelegate {
         }
         return cell
     }
-
+    
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         72
     }
-
+    
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         let recipient = viewModel.sectionedRecipients[indexPath.section].recipients[indexPath.row]
         handleRecipientTapped(recipient)
     }
-
+    
     private func handleRecipientTapped(_ recipient: SendMoneyRecipient) {
         if recipient.isAppUser {
             coordinator?.showEnterAmount(recipient: recipient)
@@ -356,21 +359,20 @@ extension SendMoneyViewController: UITableViewDataSource, UITableViewDelegate {
             coordinator?.openInviteToContact(recipient: recipient)
         }
     }
-
+    
     func sectionIndexTitles(for tableView: UITableView) -> [String]? {
         viewModel.sectionedRecipients.map(\.letter)
     }
-
+    
     func tableView(_ tableView: UITableView, sectionForSectionIndexTitle title: String, at index: Int) -> Int {
         index
     }
 }
 
-// MARK: - Recent recipient cell
 private final class RecentRecipientCell: UICollectionViewCell {
-
+    
     static let reuseId = "RecentRecipientCell"
-
+    
     private let avatarView = RecipientAvatarView()
     private let nameLabel: UILabel = {
         let l = UILabel()
@@ -387,7 +389,7 @@ private final class RecentRecipientCell: UICollectionViewCell {
         l.textAlignment = .center
         return l
     }()
-
+    
     override init(frame: CGRect) {
         super.init(frame: frame)
         contentView.addSubview(avatarView)
@@ -406,9 +408,9 @@ private final class RecentRecipientCell: UICollectionViewCell {
             make.leading.trailing.equalToSuperview()
         }
     }
-
+    
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-
+    
     func configure(with recipient: SendMoneyRecipient) {
         avatarView.configure(recipient: recipient, size: 56)
         nameLabel.text = recipient.displayName
@@ -416,18 +418,17 @@ private final class RecentRecipientCell: UICollectionViewCell {
     }
 }
 
-// MARK: - Section header
 private final class RecipientSectionHeader: UITableViewHeaderFooterView {
-
+    
     static let reuseId = "RecipientSectionHeader"
-
+    
     private let letterLabel: UILabel = {
         let l = UILabel()
         l.font = .systemFont(ofSize: 13, weight: .semibold)
         l.textColor = .secondaryLabel
         return l
     }()
-
+    
     override init(reuseIdentifier: String?) {
         super.init(reuseIdentifier: reuseIdentifier)
         contentView.backgroundColor = UIColor.systemGroupedBackground
@@ -437,19 +438,18 @@ private final class RecipientSectionHeader: UITableViewHeaderFooterView {
             make.centerY.equalToSuperview()
         }
     }
-
+    
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-
+    
     func configure(letter: String) {
         letterLabel.text = letter
     }
 }
 
-// MARK: - Recipient row cell
 private final class RecipientCell: UITableViewCell {
-
+    
     static let reuseId = "RecipientCell"
-
+    
     private let avatarView = RecipientAvatarView()
     private let nameLabel: UILabel = {
         let l = UILabel()
@@ -485,9 +485,9 @@ private final class RecipientCell: UITableViewCell {
         b.addTarget(self, action: #selector(sendTapped), for: .touchUpInside)
         return b
     }()
-
+    
     var onSendTapped: (() -> Void)?
-
+    
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         backgroundColor = .secondarySystemGroupedBackground
@@ -497,7 +497,7 @@ private final class RecipientCell: UITableViewCell {
         contentView.addSubview(badgeLabel)
         contentView.addSubview(phoneLabel)
         contentView.addSubview(sendButton)
-
+        
         avatarView.snp.makeConstraints { make in
             make.leading.equalToSuperview().inset(AppConstants.Auth.horizontalPadding)
             make.centerY.equalToSuperview()
@@ -526,9 +526,9 @@ private final class RecipientCell: UITableViewCell {
             make.width.height.equalTo(44)
         }
     }
-
+    
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-
+    
     func configure(with recipient: SendMoneyRecipient) {
         avatarView.configure(recipient: recipient, size: 44)
         nameLabel.text = recipient.displayName
@@ -545,15 +545,14 @@ private final class RecipientCell: UITableViewCell {
             badgeLabel.isHidden = false
         }
     }
-
+    
     @objc private func sendTapped() {
         onSendTapped?()
     }
 }
 
-// MARK: - Avatar (initials or image)
 private final class RecipientAvatarView: UIView {
-
+    
     private let imageView: UIImageView = {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
@@ -567,7 +566,7 @@ private final class RecipientAvatarView: UIView {
         l.textAlignment = .center
         return l
     }()
-
+    
     override init(frame: CGRect) {
         super.init(frame: frame)
         backgroundColor = AppConstants.Colors.mandarinOrange
@@ -578,21 +577,21 @@ private final class RecipientAvatarView: UIView {
         imageView.snp.makeConstraints { make in make.edges.equalToSuperview() }
         initialsLabel.snp.makeConstraints { make in make.center.equalToSuperview() }
     }
-
+    
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-
+    
     override func layoutSubviews() {
         super.layoutSubviews()
         layer.cornerRadius = bounds.height / 2
     }
-
+    
     func configure(recipient: SendMoneyRecipient, size: CGFloat) {
         layer.cornerRadius = size / 2
         initialsLabel.text = recipient.initials
         initialsLabel.isHidden = false
         imageView.image = nil
         imageView.isHidden = true
-
+        
         if let imageData = recipient.contactImageData, let img = UIImage(data: imageData) {
             imageView.image = img
             imageView.isHidden = false

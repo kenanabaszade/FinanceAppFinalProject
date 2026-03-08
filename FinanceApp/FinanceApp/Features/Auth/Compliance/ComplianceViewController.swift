@@ -1,37 +1,36 @@
+//
+//  ComplianceViewController.swift
+//  FinanceApp
+//
+//  Created by Macbook on 26.02.26.
+//
+
 import UIKit
 import SnapKit
 import Combine
 
 final class ComplianceViewController: UIViewController {
-
+    
     weak var coordinator: OnboardingCoordinator?
-
+    
     private let viewModel: ComplianceViewModel
     private var cancellables = Set<AnyCancellable>()
     private var errorHeightConstraint: Constraint?
-
-    private let backButton: UIButton = {
-        let b = UIButton(type: .system)
-        let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .semibold)
-        b.setImage(UIImage(systemName: "arrow.left", withConfiguration: config), for: .normal)
-        b.tintColor = AppConstants.Colors.authTitle
-        b.backgroundColor = AppConstants.Colors.authBackButtonBackground
-        b.layer.cornerRadius = AppConstants.Auth.iconButtonSize / 2
-        return b
-    }()
-
+    
+    private lazy var backButton: UIButton = AppConstants.makeBackButton()
+    
     private let topRightImageView: UIImageView = {
         let iv = UIImageView()
         iv.image = UIImage(named: "mandarinlaunch")
         iv.contentMode = .scaleAspectFit
         return iv
     }()
-
+    
     private let headerView = AuthHeaderView(
         title: "Almost there",
         subtitle: "Country and date of birth."
     )
-
+    
     private let stepLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 13, weight: .regular)
@@ -39,7 +38,7 @@ final class ComplianceViewController: UIViewController {
         label.text = "Step 3 of 4"
         return label
     }()
-
+    
     private let countryTitleLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 14, weight: .medium)
@@ -47,7 +46,7 @@ final class ComplianceViewController: UIViewController {
         label.text = "Country"
         return label
     }()
-
+    
     private let countryContainerView: UIView = {
         let v = UIView()
         v.backgroundColor = AppConstants.Colors.authInputBackground
@@ -55,7 +54,7 @@ final class ComplianceViewController: UIViewController {
         v.layer.borderColor = AppConstants.Colors.authInputBorder.cgColor
         return v
     }()
-
+    
     private let countryButton: UIButton = {
         let b = UIButton(type: .system)
         b.contentHorizontalAlignment = .left
@@ -64,7 +63,7 @@ final class ComplianceViewController: UIViewController {
         b.setTitle("Select country", for: .normal)
         return b
     }()
-
+    
     private let birthdateTitleLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 14, weight: .medium)
@@ -72,7 +71,7 @@ final class ComplianceViewController: UIViewController {
         label.text = "Birthdate"
         return label
     }()
-
+    
     private let birthdateContainerView: UIView = {
         let v = UIView()
         v.backgroundColor = AppConstants.Colors.authInputBackground
@@ -80,7 +79,7 @@ final class ComplianceViewController: UIViewController {
         v.layer.borderColor = AppConstants.Colors.authInputBorder.cgColor
         return v
     }()
-
+    
     private let birthdateButton: UIButton = {
         let b = UIButton(type: .system)
         b.contentHorizontalAlignment = .left
@@ -89,7 +88,7 @@ final class ComplianceViewController: UIViewController {
         b.setTitle("Select date", for: .normal)
         return b
     }()
-
+    
     private lazy var datePicker: UIDatePicker = {
         let p = UIDatePicker()
         p.datePickerMode = .date
@@ -100,7 +99,7 @@ final class ComplianceViewController: UIViewController {
         p.addTarget(self, action: #selector(datePickerChanged), for: .valueChanged)
         return p
     }()
-
+    
     private let errorLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 13, weight: .regular)
@@ -109,18 +108,18 @@ final class ComplianceViewController: UIViewController {
         label.isHidden = true
         return label
     }()
-
+    
     private let nextButton = AuthPillButton(style: .filledPrimary, title: "Next")
-
+    
     init(viewModel: ComplianceViewModel) {
         self.viewModel = viewModel
         super.init(nibName: nil, bundle: nil)
     }
-
+    
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
@@ -128,18 +127,18 @@ final class ComplianceViewController: UIViewController {
         setupConstraints()
         bind()
     }
-
+    
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         navigationController?.setNavigationBarHidden(true, animated: animated)
     }
-
+    
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         countryContainerView.layer.cornerRadius = countryContainerView.bounds.height / 2
         birthdateContainerView.layer.cornerRadius = birthdateContainerView.bounds.height / 2
     }
-
+    
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
         if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
@@ -149,20 +148,20 @@ final class ComplianceViewController: UIViewController {
                 .resolvedColor(with: traitCollection).cgColor
         }
     }
-
+    
     private func setupUI() {
         view.backgroundColor = AppConstants.Colors.authBackground
-
+        
         backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
         countryButton.addTarget(self, action: #selector(countryTapped), for: .touchUpInside)
         birthdateButton.addTarget(self, action: #selector(birthdateTapped), for: .touchUpInside)
         nextButton.addTarget(self, action: #selector(nextTapped), for: .touchUpInside)
-
+        
         let tap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
         tap.cancelsTouchesInView = false
         view.addGestureRecognizer(tap)
     }
-
+    
     private func addSubViews() {
         view.addSubview(backButton)
         view.addSubview(topRightImageView)
@@ -177,79 +176,79 @@ final class ComplianceViewController: UIViewController {
         view.addSubview(errorLabel)
         view.addSubview(nextButton)
     }
-
+    
     private func setupConstraints() {
         let h = AppConstants.Auth.horizontalPadding
-
+        
         backButton.snp.makeConstraints { make in
             make.top.equalTo(view.safeAreaLayoutGuide).offset(AppConstants.Spacing.medium)
             make.leading.equalToSuperview().offset(h)
             make.width.height.equalTo(AppConstants.Auth.iconButtonSize)
         }
-
+        
         topRightImageView.snp.makeConstraints { make in
             make.centerY.equalTo(backButton)
             make.trailing.equalToSuperview().offset(-h)
             make.width.height.equalTo(40)
         }
-
+        
         headerView.snp.makeConstraints { make in
             make.top.equalTo(backButton.snp.bottom).offset(28)
             make.leading.trailing.equalToSuperview().inset(h)
         }
-
+        
         stepLabel.snp.makeConstraints { make in
             make.top.equalTo(headerView.snp.bottom).offset(AppConstants.Spacing.small)
             make.leading.equalToSuperview().offset(h)
         }
-
+        
         countryTitleLabel.snp.makeConstraints { make in
             make.top.equalTo(stepLabel.snp.bottom).offset(AppConstants.Spacing.extraLarge)
             make.leading.trailing.equalToSuperview().inset(h)
         }
-
+        
         countryContainerView.snp.makeConstraints { make in
             make.top.equalTo(countryTitleLabel.snp.bottom).offset(AppConstants.Spacing.small)
             make.leading.trailing.equalToSuperview().inset(h)
             make.height.equalTo(AppConstants.Sizes.textFieldHeight)
         }
-
+        
         countryButton.snp.makeConstraints { make in
             make.leading.equalToSuperview().offset(20)
             make.trailing.equalToSuperview().offset(-20)
             make.centerY.equalToSuperview()
         }
-
+        
         birthdateTitleLabel.snp.makeConstraints { make in
             make.top.equalTo(countryContainerView.snp.bottom).offset(20)
             make.leading.trailing.equalToSuperview().inset(h)
         }
-
+        
         birthdateContainerView.snp.makeConstraints { make in
             make.top.equalTo(birthdateTitleLabel.snp.bottom).offset(AppConstants.Spacing.small)
             make.leading.trailing.equalToSuperview().inset(h)
             make.height.equalTo(AppConstants.Sizes.textFieldHeight)
         }
-
+        
         birthdateButton.snp.makeConstraints { make in
             make.leading.equalToSuperview().offset(20)
             make.trailing.equalToSuperview().offset(-20)
             make.centerY.equalToSuperview()
         }
-
+        
         errorLabel.snp.makeConstraints { make in
             make.top.equalTo(birthdateContainerView.snp.bottom).offset(8)
             make.leading.trailing.equalToSuperview().inset(h)
             errorHeightConstraint = make.height.equalTo(0).constraint
         }
-
+        
         nextButton.snp.makeConstraints { make in
             make.top.equalTo(errorLabel.snp.bottom).offset(AppConstants.Spacing.large)
             make.leading.trailing.equalToSuperview().inset(h)
             make.height.equalTo(AppConstants.Auth.primaryButtonHeight)
         }
     }
-
+    
     private func bind() {
         viewModel.$isLoading
             .receive(on: DispatchQueue.main)
@@ -257,7 +256,7 @@ final class ComplianceViewController: UIViewController {
                 self?.applyLoading(loading)
             }
             .store(in: &cancellables)
-
+        
         viewModel.$errorMessage
             .receive(on: DispatchQueue.main)
             .compactMap { $0 }
@@ -265,7 +264,7 @@ final class ComplianceViewController: UIViewController {
                 self?.showError(message)
             }
             .store(in: &cancellables)
-
+        
         viewModel.$errorMessage
             .receive(on: DispatchQueue.main)
             .filter { $0 == nil || $0?.isEmpty == true }
@@ -273,7 +272,7 @@ final class ComplianceViewController: UIViewController {
                 self?.clearError()
             }
             .store(in: &cancellables)
-
+        
         viewModel.$selectedCountry
             .receive(on: DispatchQueue.main)
             .sink { [weak self] country in
@@ -284,7 +283,7 @@ final class ComplianceViewController: UIViewController {
                 self.countryButton.setTitleColor(color, for: .normal)
             }
             .store(in: &cancellables)
-
+        
         viewModel.$selectedDateOfBirth
             .receive(on: DispatchQueue.main)
             .sink { [weak self] date in
@@ -300,7 +299,7 @@ final class ComplianceViewController: UIViewController {
                 }
             }
             .store(in: &cancellables)
-
+        
         viewModel.$submitSuccess
             .receive(on: DispatchQueue.main)
             .filter { $0 }
@@ -309,7 +308,7 @@ final class ComplianceViewController: UIViewController {
             }
             .store(in: &cancellables)
     }
-
+    
     private func clearError() {
         guard !errorLabel.isHidden else { return }
         errorLabel.isHidden = true
@@ -319,7 +318,7 @@ final class ComplianceViewController: UIViewController {
             self.view.layoutIfNeeded()
         }
     }
-
+    
     private func showError(_ message: String) {
         errorLabel.text = message
         errorLabel.isHidden = false
@@ -328,22 +327,22 @@ final class ComplianceViewController: UIViewController {
             self.view.layoutIfNeeded()
         }
     }
-
+    
     private func applyLoading(_ loading: Bool) {
         nextButton.isEnabled = !loading
         nextButton.alpha = loading ? 0.6 : 1.0
         countryButton.isEnabled = !loading
         birthdateButton.isEnabled = !loading
     }
-
+    
     @objc private func dismissKeyboard() {
         view.endEditing(true)
     }
-
+    
     @objc private func backTapped() {
         navigationController?.popViewController(animated: true)
     }
-
+    
     @objc private func countryTapped() {
         let sheet = UIAlertController(title: "Country", message: nil, preferredStyle: .actionSheet)
         for country in ComplianceViewModel.countries {
@@ -359,7 +358,7 @@ final class ComplianceViewController: UIViewController {
         }
         present(sheet, animated: true)
     }
-
+    
     @objc private func birthdateTapped() {
         view.endEditing(true)
         let vc = UIViewController()
@@ -377,16 +376,16 @@ final class ComplianceViewController: UIViewController {
         }
         present(nav, animated: true)
     }
-
+    
     @objc private func birthdateDoneTapped() {
         viewModel.setDateOfBirth(datePicker.date)
         dismiss(animated: true)
     }
-
+    
     @objc private func datePickerChanged() {
         viewModel.setDateOfBirth(datePicker.date)
     }
-
+    
     @objc private func nextTapped() {
         view.endEditing(true)
         viewModel.clearError()

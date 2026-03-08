@@ -1,14 +1,21 @@
+//
+//  MainViewController.swift
+//  FinanceApp
+//
+//  Created by Macbook on 15.02.26.
+//
+
 import UIKit
 import SnapKit
 import Combine
 
 final class MainViewController: UIViewController {
-
+    
     weak var coordinator: OnboardingCoordinator?
-
+    
     private let viewModel: MainViewModel
     private var cancellables = Set<AnyCancellable>()
-
+    
     private let scrollView: UIScrollView = {
         let sv = UIScrollView()
         sv.showsVerticalScrollIndicator = false
@@ -16,23 +23,23 @@ final class MainViewController: UIViewController {
         sv.contentInsetAdjustmentBehavior = .never
         return sv
     }()
-
+    
     private let contentView = UIView()
-
+    
     private let greetingLabel: UILabel = {
         let l = UILabel()
         l.font = .systemFont(ofSize: 12, weight: .medium)
         l.textColor = AppConstants.Colors.authSubtitle
         return l
     }()
-
+    
     private let nameLabel: UILabel = {
         let l = UILabel()
         l.font = .systemFont(ofSize: 28, weight: .bold)
         l.textColor = AppConstants.Colors.authTitle
         return l
     }()
-
+    
     private let notificationBellContainer: UIView = {
         let v = UIView()
         v.backgroundColor = AppConstants.Colors.authCardBackground
@@ -41,7 +48,7 @@ final class MainViewController: UIViewController {
         v.layer.borderColor = AppConstants.Colors.authInputBorder.cgColor
         return v
     }()
-
+    
     private lazy var notificationButton: UIButton = {
         let b = UIButton(type: .system)
         let config = UIImage.SymbolConfiguration(pointSize: 18, weight: .medium)
@@ -50,14 +57,14 @@ final class MainViewController: UIViewController {
         b.addTarget(self, action: #selector(notificationTapped), for: .touchUpInside)
         return b
     }()
-
+    
     private let notificationDot: UIView = {
         let v = UIView()
         v.backgroundColor = AppConstants.Colors.mandarinOrange
         v.layer.cornerRadius = 5
         return v
     }()
-
+    
     private lazy var cardsCollectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .horizontal
@@ -72,7 +79,7 @@ final class MainViewController: UIViewController {
         cv.register(AddCardEmptyCell.self, forCellWithReuseIdentifier: AddCardEmptyCell.reuseId)
         return cv
     }()
-
+    
     private let pageDotsStack: UIStackView = {
         let s = UIStackView()
         s.axis = .horizontal
@@ -80,24 +87,24 @@ final class MainViewController: UIViewController {
         s.alignment = .center
         return s
     }()
-
+    
     private var pageDots: [UIView] = []
     private var currentCardIndex = 0
-
+    
     private let quickActionsStack: UIStackView = {
         let s = UIStackView()
         s.axis = .horizontal
         s.distribution = .equalSpacing
         return s
     }()
-
+    
     private var quickActionCircles: [UIView] = []
-
+    
     private lazy var sendAction = makeQuickAction(title: "Send", systemImage: "arrow.up", action: #selector(sendTapped))
-    private lazy var requestAction = makeQuickAction(title: "Request", systemImage: "arrow.down")
+    private lazy var requestAction = makeQuickAction(title: "Request", systemImage: "arrow.down", action: #selector(requestTapped))
     private lazy var topUpAction = makeQuickAction(title: "Top Up", systemImage: "plus", action: #selector(topUpTapped))
     private lazy var exchangeAction = makeQuickAction(title: "Exchange", systemImage: "dollarsign.arrow.circlepath")
-
+    
     private let transactionsTitleLabel: UILabel = {
         let l = UILabel()
         l.text = "Recent Transactions"
@@ -105,7 +112,7 @@ final class MainViewController: UIViewController {
         l.textColor = AppConstants.Colors.authTitle
         return l
     }()
-
+    
     private lazy var seeAllButton: UIButton = {
         let b = UIButton(type: .system)
         b.setTitle("SEE ALL", for: .normal)
@@ -114,7 +121,7 @@ final class MainViewController: UIViewController {
         b.addTarget(self, action: #selector(seeAllTapped), for: .touchUpInside)
         return b
     }()
-
+    
     private let transactionsCard: UIView = {
         let v = UIView()
         v.backgroundColor = AppConstants.Colors.authCardBackground
@@ -125,34 +132,34 @@ final class MainViewController: UIViewController {
         v.layer.shadowRadius = 10
         return v
     }()
-
+    
     private let transactionsStack: UIStackView = {
         let s = UIStackView()
         s.axis = .vertical
         s.spacing = 0
         return s
     }()
-
+    
     init(viewModel: MainViewModel) {
         self.viewModel = viewModel
         super.init(nibName: nil, bundle: nil)
     }
-
+    
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
         setupConstraints()
     }
-
+    
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         Task { await viewModel.loadDashboard() }
     }
-
+    
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
         if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
@@ -166,42 +173,42 @@ final class MainViewController: UIViewController {
             }
         }
     }
-
+    
     private func setupUI() {
         view.backgroundColor = AppConstants.Colors.dashboardBackground
         navigationController?.setNavigationBarHidden(true, animated: false)
         addSubviews()
         bind()
     }
-
+    
     private func addSubviews() {
         view.addSubview(scrollView)
         scrollView.addSubview(contentView)
-
+        
         contentView.addSubview(greetingLabel)
         contentView.addSubview(nameLabel)
         contentView.addSubview(notificationBellContainer)
         notificationBellContainer.addSubview(notificationButton)
         notificationBellContainer.addSubview(notificationDot)
-
+        
         contentView.addSubview(cardsCollectionView)
         contentView.addSubview(pageDotsStack)
-
+        
         contentView.addSubview(quickActionsStack)
         quickActionsStack.addArrangedSubview(sendAction)
         quickActionsStack.addArrangedSubview(requestAction)
         quickActionsStack.addArrangedSubview(topUpAction)
         quickActionsStack.addArrangedSubview(exchangeAction)
-
+        
         contentView.addSubview(transactionsTitleLabel)
         contentView.addSubview(seeAllButton)
         contentView.addSubview(transactionsCard)
         transactionsCard.addSubview(transactionsStack)
     }
-
+    
     private func setupConstraints() {
         let h = AppConstants.Auth.horizontalPadding
-
+        
         scrollView.snp.makeConstraints { make in
             make.top.equalTo(view.safeAreaLayoutGuide)
             make.leading.trailing.equalToSuperview()
@@ -211,7 +218,7 @@ final class MainViewController: UIViewController {
             make.edges.equalToSuperview()
             make.width.equalTo(view)
         }
-
+        
         greetingLabel.snp.makeConstraints { make in
             make.top.equalToSuperview().offset(AppConstants.Spacing.medium)
             make.leading.equalToSuperview().inset(h)
@@ -234,23 +241,23 @@ final class MainViewController: UIViewController {
             make.trailing.equalToSuperview().inset(AppConstants.Spacing.small)
             make.width.height.equalTo(10)
         }
-
+        
         cardsCollectionView.snp.makeConstraints { make in
             make.top.equalTo(nameLabel.snp.bottom).offset(AppConstants.Spacing.large)
             make.leading.trailing.equalToSuperview()
             make.height.equalTo(AppConstants.Dashboard.balanceCardHeight)
         }
-
+        
         pageDotsStack.snp.makeConstraints { make in
             make.top.equalTo(cardsCollectionView.snp.bottom).offset(AppConstants.Spacing.medium)
             make.centerX.equalToSuperview()
         }
-
+        
         quickActionsStack.snp.makeConstraints { make in
             make.top.equalTo(pageDotsStack.snp.bottom).offset(AppConstants.Spacing.large)
             make.leading.trailing.equalToSuperview().inset(h)
         }
-
+        
         transactionsTitleLabel.snp.makeConstraints { make in
             make.top.equalTo(quickActionsStack.snp.bottom).offset(AppConstants.Spacing.extraLarge)
             make.leading.equalToSuperview().inset(h)
@@ -268,7 +275,7 @@ final class MainViewController: UIViewController {
             make.edges.equalToSuperview().inset(AppConstants.Spacing.small)
         }
     }
-
+    
     private func bind() {
         viewModel.$user
             .receive(on: DispatchQueue.main)
@@ -298,15 +305,15 @@ final class MainViewController: UIViewController {
                 self?.cardsCollectionView.reloadData()
             }
             .store(in: &cancellables)
-
+        
         updateHeader()
     }
-
+    
     private func updateHeader() {
         greetingLabel.text = viewModel.greeting.uppercased()
         nameLabel.text = viewModel.displayName
     }
-
+    
     private func applyCardTransforms() {
         let scrollView = cardsCollectionView
         let width = scrollView.bounds.width
@@ -320,35 +327,33 @@ final class MainViewController: UIViewController {
             cell.transform = CGAffineTransform(scaleX: scale, y: scale)
         }
     }
-
-    /// Real cards only; no placeholders. Use displayItems for collection view (includes Add Card row).
+    
     private var displayCards: [Card] {
         viewModel.cards
     }
-
-    /// One row per card plus one "Add card" row at the end. When no cards, single row is Add card.
+    
     private var displayItems: [Card?] {
         if viewModel.cards.isEmpty {
             return [nil]
         }
         return viewModel.cards.map { $0 } + [nil]
     }
-
+    
     private func updatePageDots() {
         pageDots.forEach { $0.removeFromSuperview() }
         pageDotsStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
         pageDots.removeAll()
-
+        
         let count = displayItems.count
         for i in 0..<count {
             let dot = UIView()
             let isActive = i == currentCardIndex
             dot.backgroundColor = isActive
-                ? AppConstants.Colors.mandarinOrange
-                : AppConstants.Colors.authInputBorder
+            ? AppConstants.Colors.mandarinOrange
+            : AppConstants.Colors.authInputBorder
             let size = isActive
-                ? AppConstants.Dashboard.pageActiveDotSize
-                : AppConstants.Dashboard.pageInactiveDotSize
+            ? AppConstants.Dashboard.pageActiveDotSize
+            : AppConstants.Dashboard.pageInactiveDotSize
             dot.layer.cornerRadius = size / 2
             dot.snp.makeConstraints { make in
                 make.width.height.equalTo(size)
@@ -357,7 +362,7 @@ final class MainViewController: UIViewController {
             pageDotsStack.addArrangedSubview(dot)
         }
     }
-
+    
     private func reloadTransactions() {
         transactionsStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
         for (index, tx) in viewModel.recentTransactions.enumerated() {
@@ -384,37 +389,37 @@ final class MainViewController: UIViewController {
             transactionsStack.addArrangedSubview(empty)
         }
     }
-
+    
     private func makeQuickAction(title: String, systemImage: String, action: Selector? = nil) -> UIView {
         let container = UIView()
         if action != nil {
             container.isUserInteractionEnabled = true
             container.addGestureRecognizer(UITapGestureRecognizer(target: self, action: action))
         }
-
+        
         let circle = UIView()
         circle.backgroundColor = .clear
         circle.layer.cornerRadius = AppConstants.Dashboard.quickActionCircleSize / 2
         circle.layer.borderWidth = 1.5
         circle.layer.borderColor = AppConstants.Colors.authInputBorder.cgColor
-
+        
         let iconConfig = UIImage.SymbolConfiguration(pointSize: 20, weight: .medium)
         let imageView = UIImageView(image: UIImage(systemName: systemImage, withConfiguration: iconConfig))
         imageView.tintColor = AppConstants.Colors.authTitle
         imageView.contentMode = .scaleAspectFit
-
+        
         let label = UILabel()
         label.text = title
         label.font = .systemFont(ofSize: 12, weight: .medium)
         label.textColor = AppConstants.Colors.authSubtitle
         label.textAlignment = .center
-
+        
         quickActionCircles.append(circle)
-
+        
         container.addSubview(circle)
         circle.addSubview(imageView)
         container.addSubview(label)
-
+        
         circle.snp.makeConstraints { make in
             make.top.centerX.equalToSuperview()
             make.width.height.equalTo(AppConstants.Dashboard.quickActionCircleSize)
@@ -431,29 +436,35 @@ final class MainViewController: UIViewController {
         container.snp.makeConstraints { make in
             make.width.equalTo(AppConstants.Dashboard.quickActionContainerWidth)
         }
-
+        
         return container
     }
-
+    
     @objc private func notificationTapped() {
         coordinator?.showNotificationsCenter()
     }
+    
     @objc private func seeAllTapped() { }
+    
     @objc private func sendTapped() {
         coordinator?.showSendMoney()
     }
-
+    
+    @objc private func requestTapped() {
+        coordinator?.showRequestMoneyRecipients()
+    }
+    
     @objc private func topUpTapped() {
         tabBarController?.selectedIndex = 2
     }
 }
 
 extension MainViewController: UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
-
+    
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         displayItems.count
     }
-
+    
     func collectionView(
         _ collectionView: UICollectionView,
         cellForItemAt indexPath: IndexPath
@@ -472,16 +483,17 @@ extension MainViewController: UICollectionViewDataSource, UICollectionViewDelega
             for: indexPath
         ) as! DashboardCardCell
         let currency = card.currency ?? "AZN"
-        let balance = viewModel.totalBalanceForCurrency(currency)
+        let balance = viewModel.balanceForAccount(card.accountId)
         let data = DashboardCardData(
             card: card,
             balance: balance,
-            currency: currency
+            currency: currency,
+            isPrimary: indexPath.item == 0
         )
         cell.configure(with: data)
         return cell
     }
-
+    
     func collectionView(
         _ collectionView: UICollectionView,
         layout collectionViewLayout: UICollectionViewLayout,
@@ -489,7 +501,7 @@ extension MainViewController: UICollectionViewDataSource, UICollectionViewDelega
     ) -> CGSize {
         CGSize(width: collectionView.bounds.width, height: AppConstants.Dashboard.balanceCardHeight)
     }
-
+    
     func collectionView(
         _ collectionView: UICollectionView,
         layout collectionViewLayout: UICollectionViewLayout,
@@ -497,17 +509,16 @@ extension MainViewController: UICollectionViewDataSource, UICollectionViewDelega
     ) -> UIEdgeInsets {
         .zero
     }
-
+    
     func collectionView(
         _ collectionView: UICollectionView,
         didSelectItemAt indexPath: IndexPath
     ) {
         if let card = displayItems[indexPath.item] {
             coordinator?.navigate(to: .cardDetail(card: card))
-        }
-        // Add card row: tap handled by button in AddCardEmptyCell
+        } 
     }
-
+    
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         guard scrollView == cardsCollectionView else { return }
         let width = scrollView.bounds.width
@@ -520,14 +531,14 @@ extension MainViewController: UICollectionViewDataSource, UICollectionViewDelega
         }
         applyCardTransforms()
     }
-
+    
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
         guard scrollView == cardsCollectionView else { return }
         let page = Int(round(scrollView.contentOffset.x / scrollView.bounds.width))
         currentCardIndex = page
         updatePageDots()
     }
-
+    
     func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {
         guard scrollView == cardsCollectionView else { return }
         let page = Int(round(scrollView.contentOffset.x / scrollView.bounds.width))

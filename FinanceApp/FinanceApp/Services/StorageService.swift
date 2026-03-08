@@ -6,8 +6,7 @@
 import Foundation
 import FirebaseStorage
 
-protocol StorageServiceProtocol: AnyObject {
-    /// Uploads profile image data for the given user; returns the download URL.
+protocol StorageServiceProtocol: AnyObject { 
     func uploadProfileImage(userId: String, imageData: Data) async throws -> String
 }
 

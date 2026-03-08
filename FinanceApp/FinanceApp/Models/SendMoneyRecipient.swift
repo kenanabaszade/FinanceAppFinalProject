@@ -1,3 +1,10 @@
+//
+//  SendMoneyRecipient.swift
+//  FinanceApp
+//
+//  Created by Macbook on 24.02.26.
+//
+
 import Foundation
  
 struct SendMoneyRecipient {

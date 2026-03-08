@@ -4,13 +4,9 @@
 //
 
 import Foundation
-
-/// Generates bank-style 16-digit card numbers (Luhn-valid) and expiry strings for demo cards.
+ 
 enum CardNumberGenerator {
-
-    /// Appends Luhn check digit so the full string of digits passes Luhn validation.
-    /// - Parameter digits: 15-digit string (no spaces).
-    /// - Returns: 16-digit string (15 + check digit).
+ 
     static func luhnCheckDigit(for digits: String) -> Character {
         let digitsArray = digits.compactMap { $0.wholeNumberValue }
         var sum = 0
@@ -26,8 +22,7 @@ enum CardNumberGenerator {
         let check = (10 - (sum % 10)) % 10
         return Character(Unicode.Scalar(48 + check)!)
     }
-
-    /// Generates a 16-digit Luhn-valid card number for the given brand.
+ 
     static func generateNumber(brand: CardBrand) -> String {
         let prefix: String
         let lengthAfterPrefix: Int
@@ -47,8 +42,7 @@ enum CardNumberGenerator {
         digits += String(luhnCheckDigit(for: digits))
         return digits
     }
-
-    /// Generates an expiry string MM/YY, 2–5 years in the future.
+ 
     static func generateExpiryDate() -> String {
         let calendar = Calendar.current
         let now = Date()

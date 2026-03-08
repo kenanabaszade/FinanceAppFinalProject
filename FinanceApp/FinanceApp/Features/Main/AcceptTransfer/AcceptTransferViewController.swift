@@ -8,14 +8,14 @@ import SnapKit
 import Combine
 
 final class AcceptTransferViewController: UIViewController {
-
+    
     weak var coordinator: OnboardingCoordinator?
     private let viewModel: AcceptTransferViewModel
     private var cancellables = Set<AnyCancellable>()
-
+    
     private let scrollView = UIScrollView()
     private let contentView = UIView()
-
+    
     private let senderLabel: UILabel = {
         let l = UILabel()
         l.font = .systemFont(ofSize: 15, weight: .regular)
@@ -94,7 +94,7 @@ final class AcceptTransferViewController: UIViewController {
     }()
     private let emptyCardsLabel: UILabel = {
         let l = UILabel()
-        l.text = "No card with matching currency. Add a card to receive."
+        l.text = "Receive into the account below."
         l.font = .systemFont(ofSize: 15, weight: .regular)
         l.textColor = .secondaryLabel
         l.textAlignment = .center
@@ -102,18 +102,28 @@ final class AcceptTransferViewController: UIViewController {
         l.isHidden = true
         return l
     }()
-
+    
     init(viewModel: AcceptTransferViewModel) {
         self.viewModel = viewModel
         super.init(nibName: nil, bundle: nil)
     }
-
+    
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemGroupedBackground
         title = "Receive money"
+        Task { await viewModel.load() }
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        Task { await viewModel.load() }
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
         navigationController?.setNavigationBarHidden(false, animated: false)
         navigationItem.largeTitleDisplayMode = .never
         setupLayout()
@@ -121,9 +131,8 @@ final class AcceptTransferViewController: UIViewController {
         cardsTableView.delegate = self
         cardsTableView.dataSource = self
         cardsTableView.register(AcceptTransferCardCell.self, forCellReuseIdentifier: AcceptTransferCardCell.reuseId)
-        Task { await viewModel.load() }
     }
-
+    
     private func setupLayout() {
         view.addSubview(scrollView)
         scrollView.addSubview(contentView)
@@ -138,7 +147,7 @@ final class AcceptTransferViewController: UIViewController {
         contentView.addSubview(rejectButton)
         contentView.addSubview(errorLabel)
         view.addSubview(activityIndicator)
-
+        
         let padding: CGFloat = 20
         scrollView.snp.makeConstraints { make in
             make.edges.equalTo(view.safeAreaLayoutGuide)
@@ -194,16 +203,21 @@ final class AcceptTransferViewController: UIViewController {
             make.center.equalToSuperview()
         }
     }
-
+    
     private func bind() {
         viewModel.$request
             .receive(on: DispatchQueue.main)
             .sink { [weak self] req in
                 guard let self = self, let req = req else { return }
-                self.senderLabel.text = "From"
-                self.senderNameLabel.text = req.senderDisplayName
+                let isSender = self.viewModel.isSenderFlow
+                self.title = isSender ? "Send money" : "Receive money"
+                self.senderLabel.text = isSender ? "Requested by" : "From"
+                self.senderNameLabel.text = self.viewModel.counterpartyLabel
                 self.amountLabel.text = self.viewModel.amountText
                 self.currencyLabel.text = req.currency
+                self.cardsSectionLabel.text = isSender ? "Send from" : "Receive into"
+                self.acceptButton.setTitle(isSender ? "Send" : "Accept", for: .normal)
+                self.rejectButton.setTitle(isSender ? "Cancel" : "Reject", for: .normal)
             }
             .store(in: &cancellables)
         viewModel.$cardsWithBalance
@@ -211,7 +225,9 @@ final class AcceptTransferViewController: UIViewController {
             .sink { [weak self] list in
                 guard let self = self else { return }
                 let isEmpty = list.isEmpty
-                self.emptyCardsLabel.isHidden = !isEmpty
+                
+                let showEmptyMessage = isEmpty && self.viewModel.request != nil
+                self.emptyCardsLabel.isHidden = !showEmptyMessage
                 self.cardsTableView.isHidden = isEmpty
                 self.cardsTableView.snp.updateConstraints { make in
                     make.height.equalTo(isEmpty ? 0 : CGFloat(list.count) * 72)
@@ -261,19 +277,25 @@ final class AcceptTransferViewController: UIViewController {
             }
             .store(in: &cancellables)
     }
-
+    
     private func showAcceptSuccessAndPop() {
-        let alert = UIAlertController(
-            title: "Received",
-            message: "You received \(viewModel.amountText) \(viewModel.request?.currency ?? "") from \(viewModel.request?.senderDisplayName ?? "").",
-            preferredStyle: .alert
-        )
+        let isSender = viewModel.isSenderFlow
+        let title = isSender ? "Sent" : "Received"
+        let message: String
+        if isSender, let req = viewModel.request {
+            message = "You sent \(viewModel.amountText) \(req.currency) to \(req.recipientDisplayName)."
+        } else if let req = viewModel.request {
+            message = "You received \(viewModel.amountText) \(req.currency) from \(req.senderDisplayName)."
+        } else {
+            message = "Done."
+        }
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "OK", style: .default) { [weak self] _ in
             self?.coordinator?.didFinishAcceptTransfer()
         })
         present(alert, animated: true)
     }
-
+    
     private func showRejectSuccessAndPop() {
         let alert = UIAlertController(title: "Rejected", message: "You declined the transfer request.", preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "OK", style: .default) { [weak self] _ in
@@ -281,13 +303,17 @@ final class AcceptTransferViewController: UIViewController {
         })
         present(alert, animated: true)
     }
-
+    
     @objc private func acceptTapped() {
         Task { await viewModel.accept() }
     }
-
+    
     @objc private func rejectTapped() {
-        Task { await viewModel.reject() }
+        if viewModel.isSenderFlow {
+            coordinator?.didFinishAcceptTransfer()
+        } else {
+            Task { await viewModel.reject() }
+        }
     }
 }
 
@@ -330,7 +356,7 @@ private final class AcceptTransferCardCell: UITableViewCell {
         return l
     }()
     private let checkmark = UIImageView(image: UIImage(systemName: "checkmark.circle.fill"))
-
+    
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         backgroundColor = .secondarySystemGroupedBackground
@@ -358,6 +384,7 @@ private final class AcceptTransferCardCell: UITableViewCell {
         }
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+    
     func configure(card: Card, balance: Double, currency: String, isSelected: Bool) {
         titleLabel.text = "\(card.name) •••• \(card.lastFourDigits)"
         subtitleLabel.text = currency

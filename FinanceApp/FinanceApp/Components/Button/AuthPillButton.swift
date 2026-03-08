@@ -9,15 +9,15 @@ import UIKit
 import SnapKit
 
 class AuthPillButton: UIButton {
-
+    
     enum Style {
         case filledDark
         case filledPrimary
         case outlineLight
     }
-
+    
     private let style: Style
-
+    
     init(style: Style, title: String) {
         self.style = style
         super.init(frame: .zero)
@@ -34,15 +34,15 @@ class AuthPillButton: UIButton {
         clipsToBounds = false
         applyStyle()
     }
-
+    
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-
+    
     override func layoutSubviews() {
         super.layoutSubviews()
         layer.cornerRadius = bounds.height / 2
-
+        
         if style == .filledPrimary {
             layer.shadowColor = AppConstants.Colors.mandarinOrange
                 .resolvedColor(with: traitCollection).cgColor
@@ -51,14 +51,14 @@ class AuthPillButton: UIButton {
             layer.shadowRadius = 16
         }
     }
-
+    
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
         if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
             resolveCGColors()
         }
     }
-
+    
     private func resolveCGColors() {
         switch style {
         case .filledPrimary:
@@ -71,7 +71,7 @@ class AuthPillButton: UIButton {
             break
         }
     }
-
+    
     private func applyStyle() {
         switch style {
         case .filledDark:
@@ -82,7 +82,7 @@ class AuthPillButton: UIButton {
                 config.baseForegroundColor = AppConstants.Colors.authTitle
                 configuration = config
             }
-
+            
         case .filledPrimary:
             backgroundColor = AppConstants.Colors.mandarinOrange
             setTitleColor(.white, for: .normal)
@@ -91,7 +91,7 @@ class AuthPillButton: UIButton {
                 config.baseForegroundColor = .white
                 configuration = config
             }
-
+            
         case .outlineLight:
             backgroundColor = .clear
             layer.borderWidth = 1.5
@@ -104,7 +104,7 @@ class AuthPillButton: UIButton {
             }
         }
     }
-
+    
     override var isHighlighted: Bool {
         didSet {
             alpha = isHighlighted ? 0.7 : 1.0

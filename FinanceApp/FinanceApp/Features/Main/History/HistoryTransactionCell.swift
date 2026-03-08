@@ -2,58 +2,60 @@
 //  HistoryTransactionCell.swift
 //  FinanceApp
 //
+//  Created by Macbook on 28.02.26.
+//
 
 import UIKit
 import SnapKit
 
 final class HistoryTransactionCell: UITableViewCell {
-
+    
     static let reuseId = "HistoryTransactionCell"
     static let cardVerticalSpacing: CGFloat = 6
     static let cardCornerRadius: CGFloat = 12
     static let horizontalInset: CGFloat = 16
-
+    
     private let cardView: UIView = {
         let v = UIView()
         v.backgroundColor = AppConstants.Colors.authCardBackground
         v.layer.cornerRadius = HistoryTransactionCell.cardCornerRadius
         return v
     }()
-
+    
     private let iconContainer: UIView = {
         let v = UIView()
         v.layer.cornerRadius = AppConstants.History.iconSize / 2
         return v
     }()
-
+    
     private let iconImageView: UIImageView = {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFit
         iv.tintColor = .white
         return iv
     }()
-
+    
     private let merchantLabel: UILabel = {
         let l = UILabel()
         l.font = .systemFont(ofSize: 16, weight: .semibold)
         l.textColor = AppConstants.Colors.authTitle
         return l
     }()
-
+    
     private let subtitleLabel: UILabel = {
         let l = UILabel()
         l.font = .systemFont(ofSize: 13, weight: .regular)
         l.textColor = AppConstants.Colors.authSubtitle
         return l
     }()
-
+    
     private let amountLabel: UILabel = {
         let l = UILabel()
         l.font = .systemFont(ofSize: 16, weight: .bold)
         l.textAlignment = .right
         return l
     }()
-
+    
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         backgroundColor = .clear
@@ -94,9 +96,9 @@ final class HistoryTransactionCell: UITableViewCell {
             make.centerY.equalToSuperview()
         }
     }
-
+    
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-
+    
     func configure(with transaction: TransactionRecord) {
         merchantLabel.text = transaction.merchantName
         let categoryName = Self.categoryDisplayName(category: transaction.category, type: transaction.type)
@@ -106,7 +108,7 @@ final class HistoryTransactionCell: UITableViewCell {
         iconContainer.backgroundColor = Self.iconBackgroundColor(category: transaction.category, type: transaction.type)
         let config = UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
         iconImageView.image = UIImage(systemName: Self.categoryIcon(category: transaction.category, type: transaction.type), withConfiguration: config)
-
+        
         let symbol: String
         switch transaction.currency {
         case "AZN": symbol = " ₼"
@@ -123,7 +125,7 @@ final class HistoryTransactionCell: UITableViewCell {
             amountLabel.textColor = UIColor.systemGreen
         }
     }
-
+    
     private static func categoryDisplayName(category: String?, type: TransactionType) -> String {
         switch type {
         case .send, .receive: return "Köçürmə"
@@ -144,7 +146,7 @@ final class HistoryTransactionCell: UITableViewCell {
             }
         }
     }
-
+    
     private static func iconBackgroundColor(category: String?, type: TransactionType) -> UIColor {
         switch type {
         case .send, .receive: return UIColor.systemGreen.withAlphaComponent(0.25)
@@ -161,7 +163,7 @@ final class HistoryTransactionCell: UITableViewCell {
             }
         }
     }
-
+    
     private static func categoryIcon(category: String?, type: TransactionType) -> String {
         switch type {
         case .send: return "arrow.up.right"

@@ -1,20 +1,28 @@
+//
+//  EnterAmountViewController.swift
+//  FinanceApp
+//
+//  Created by Macbook on 28.02.26.
+//
+
+
 import UIKit
 import SnapKit
 import Combine
 
 final class EnterAmountViewController: UIViewController {
-
+    
     weak var coordinator: OnboardingCoordinator?
     private let viewModel: EnterAmountViewModel
     private var cancellables = Set<AnyCancellable>()
-
+    
     private let scrollView: UIScrollView = {
         let sv = UIScrollView()
         sv.keyboardDismissMode = .onDrag
         return sv
     }()
     private let contentView = UIView()
-
+    
     private let recipientLabel: UILabel = {
         let l = UILabel()
         l.font = .systemFont(ofSize: 15, weight: .regular)
@@ -68,7 +76,7 @@ final class EnterAmountViewController: UIViewController {
         b.setTitleColor(.white, for: .normal)
         b.backgroundColor = AppConstants.Colors.mandarinOrange
         b.layer.cornerRadius = 12
-        b.addTarget(self, action: #selector(sendTapped), for: .touchUpInside)
+        b.addTarget(EnterAmountViewController.self, action: #selector(sendTapped), for: .touchUpInside)
         return b
     }()
     private let errorLabel: UILabel = {
@@ -85,13 +93,13 @@ final class EnterAmountViewController: UIViewController {
         v.hidesWhenStopped = true
         return v
     }()
-
+    
     private let cardsEmptyContainer: UIView = {
         let v = UIView()
         v.isHidden = true
         return v
     }()
-
+    
     private let cardsEmptyLabel: UILabel = {
         let l = UILabel()
         l.text = "Add a card to send money"
@@ -101,7 +109,7 @@ final class EnterAmountViewController: UIViewController {
         l.numberOfLines = 0
         return l
     }()
-
+    
     private lazy var cardsEmptyAddButton: UIButton = {
         let b = UIButton(type: .system)
         b.setTitle("Add card", for: .normal)
@@ -112,14 +120,14 @@ final class EnterAmountViewController: UIViewController {
         b.addTarget(self, action: #selector(addCardFromEnterAmountTapped), for: .touchUpInside)
         return b
     }()
-
+    
     init(viewModel: EnterAmountViewModel) {
         self.viewModel = viewModel
         super.init(nibName: nil, bundle: nil)
     }
-
+    
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemGroupedBackground
@@ -139,11 +147,11 @@ final class EnterAmountViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow(_:)), name: UIResponder.keyboardWillShowNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide(_:)), name: UIResponder.keyboardWillHideNotification, object: nil)
     }
-
+    
     deinit {
         NotificationCenter.default.removeObserver(self)
     }
-
+    
     private func setupLayout() {
         view.addSubview(scrollView)
         scrollView.addSubview(contentView)
@@ -159,7 +167,7 @@ final class EnterAmountViewController: UIViewController {
         contentView.addSubview(sendButton)
         contentView.addSubview(errorLabel)
         view.addSubview(activityIndicator)
-
+        
         let padding: CGFloat = 20
         scrollView.snp.makeConstraints { make in
             make.edges.equalTo(view.safeAreaLayoutGuide)
@@ -223,12 +231,12 @@ final class EnterAmountViewController: UIViewController {
             make.center.equalToSuperview()
         }
     }
-
+    
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         Task { await viewModel.loadCardsAndAccounts() }
     }
-
+    
     private func bind() {
         viewModel.$cardsWithBalance
             .receive(on: DispatchQueue.main)
@@ -269,12 +277,12 @@ final class EnterAmountViewController: UIViewController {
             }
             .store(in: &cancellables)
     }
-
+    
     private func updateCardsTableHeight(count: Int) {
         let h = min(220, CGFloat(max(1, count)) * 72)
         cardsTableView.snp.updateConstraints { make in make.height.equalTo(h) }
     }
-
+    
     private func showSuccessAndPop() {
         let alert = UIAlertController(title: "Request Sent", message: "\(viewModel.recipient.displayName) will receive a notification to choose which card to receive the money.", preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "OK", style: .default) { [weak self] _ in
@@ -282,15 +290,15 @@ final class EnterAmountViewController: UIViewController {
         })
         present(alert, animated: true)
     }
-
+    
     @objc private func amountChanged() {
         viewModel.amountText = amountField.text ?? ""
     }
-
+    
     @objc private func addCardFromEnterAmountTapped() {
         coordinator?.showAddCard()
     }
-
+    
     @objc private func sendTapped() {
         sendButton.isEnabled = false
         activityIndicator.startAnimating()
@@ -302,7 +310,7 @@ final class EnterAmountViewController: UIViewController {
             }
         }
     }
-
+    
     @objc private func keyboardWillShow(_ note: Notification) {
         guard let userInfo = note.userInfo,
               let frame = userInfo[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
@@ -316,7 +324,7 @@ final class EnterAmountViewController: UIViewController {
             self.scrollView.scrollRectToVisible(rect, animated: false)
         }
     }
-
+    
     @objc private func keyboardWillHide(_ note: Notification) {
         guard let userInfo = note.userInfo else { return }
         let duration = (userInfo[UIResponder.keyboardAnimationDurationUserInfoKey] as? NSNumber)?.doubleValue ?? 0.25
@@ -367,7 +375,7 @@ private final class CardSelectionCell: UITableViewCell {
         return l
     }()
     private let checkmark = UIImageView(image: UIImage(systemName: "checkmark.circle.fill"))
-
+    
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         backgroundColor = .secondarySystemGroupedBackground
@@ -395,6 +403,7 @@ private final class CardSelectionCell: UITableViewCell {
         }
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+    
     func configure(card: Card, balance: Double, currency: String, isSelected: Bool) {
         titleLabel.text = "\(card.name) •••• \(card.lastFourDigits)"
         subtitleLabel.text = "\(currency)"

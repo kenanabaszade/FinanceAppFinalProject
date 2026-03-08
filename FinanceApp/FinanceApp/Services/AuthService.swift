@@ -17,6 +17,7 @@ protocol AuthServiceProtocol {
     func reloadCurrentUser() async throws
     func isCurrentUserEmailVerified() -> Bool
     func currentUserId() -> String?
+    func currentUserEmail() -> String?
 }
 
 class AuthService: AuthServiceProtocol {
@@ -52,5 +53,9 @@ class AuthService: AuthServiceProtocol {
 
     func currentUserId() -> String? {
         Auth.auth().currentUser?.uid
+    }
+
+    func currentUserEmail() -> String? {
+        Auth.auth().currentUser?.email
     }
 }

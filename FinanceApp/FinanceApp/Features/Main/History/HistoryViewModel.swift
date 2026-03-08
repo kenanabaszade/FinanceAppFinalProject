@@ -2,7 +2,8 @@
 //  HistoryViewModel.swift
 //  FinanceApp
 //
-
+//  Created by Macbook on 28.02.26.
+//
 import Foundation
 import Combine
 

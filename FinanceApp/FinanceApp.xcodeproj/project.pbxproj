@@ -11,6 +11,7 @@
 		FA975EBC2F35FDBE00DAF71D /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = FA975EBB2F35FDBE00DAF71D /* FirebaseCore */; };
 		FA975EBE2F35FDC300DAF71D /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = FA975EBD2F35FDC300DAF71D /* FirebaseFirestore */; };
 		FA975EC02F35FDC700DAF71D /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = FA975EBF2F35FDC700DAF71D /* FirebaseDatabase */; };
+		FA975EC22F35FDC800DAF71D /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = FA975EC12F35FDC800DAF71D /* FirebaseStorage */; };
 		FAA9A6092F278A2100E3DE81 /* SnapKit in Frameworks */ = {isa = PBXBuildFile; productRef = FAA9A6082F278A2100E3DE81 /* SnapKit */; };
 /* End PBXBuildFile section */
 
@@ -49,6 +50,7 @@
 				FA975EBE2F35FDC300DAF71D /* FirebaseFirestore in Frameworks */,
 				FA975EBC2F35FDBE00DAF71D /* FirebaseCore in Frameworks */,
 				FA975EBA2F35FDB800DAF71D /* FirebaseAuth in Frameworks */,
+				FA975EC22F35FDC800DAF71D /* FirebaseStorage in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -104,6 +106,7 @@
 				FA975EBB2F35FDBE00DAF71D /* FirebaseCore */,
 				FA975EBD2F35FDC300DAF71D /* FirebaseFirestore */,
 				FA975EBF2F35FDC700DAF71D /* FirebaseDatabase */,
+				FA975EC12F35FDC800DAF71D /* FirebaseStorage */,
 			);
 			productName = FinanceApp;
 			productReference = FAA9A5ED2F27843800E3DE81 /* FinanceApp.app */;
@@ -178,6 +181,11 @@
 				DEVELOPMENT_TEAM = B7PZ73LFGU;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = FinanceApp/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Mandarin;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
+				INFOPLIST_KEY_NSCameraUsageDescription = "We use the camera to take a profile photo.";
+				INFOPLIST_KEY_NSContactsUsageDescription = "We use your contacts to show recipients when you send money.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "We use your photo library to choose a profile picture.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -188,7 +196,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.kenan.FinanceApp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kenan.Mandarin;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -210,6 +218,11 @@
 				DEVELOPMENT_TEAM = B7PZ73LFGU;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = FinanceApp/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Mandarin;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
+				INFOPLIST_KEY_NSCameraUsageDescription = "We use the camera to take a profile photo.";
+				INFOPLIST_KEY_NSContactsUsageDescription = "We use your contacts to show recipients when you send money.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "We use your photo library to choose a profile picture.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -220,7 +233,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.kenan.FinanceApp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kenan.Mandarin;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -415,6 +428,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = FA975EB82F35FDAD00DAF71D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseDatabase;
+		};
+		FA975EC12F35FDC800DAF71D /* FirebaseStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FA975EB82F35FDAD00DAF71D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseStorage;
 		};
 		FAA9A6082F278A2100E3DE81 /* SnapKit */ = {
 			isa = XCSwiftPackageProductDependency;

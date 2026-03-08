@@ -2,14 +2,13 @@
 //  PaymentCategory.swift
 //  FinanceApp
 //
+//  Created by Macbook on 15.02.26.
+//
 
 import UIKit
-
-/// Describes the kind of reference input for this payment category (e.g. phone, subscriber ID).
+ 
 enum PaymentInputKind {
-    /// Phone number with operator/country prefix (e.g. +994 50)
     case phoneWithPrefix(prefixes: [String])
-    /// Single line: subscriber ID, card number, fine number, etc.
     case singleLine(placeholder: String, keyboardNumber: Bool)
 
     var isPrefix: Bool {
@@ -22,11 +21,8 @@ struct PaymentCategory {
     let id: String
     let name: String
     let systemImageName: String
-    /// Optional cashback badge, e.g. 2
     let cashbackPercent: Int?
-    /// Label for the reference input (e.g. "Phone number", "Subscriber ID")
     let inputLabel: String
-    /// Input kind: phone with prefix or single line
     let inputKind: PaymentInputKind
 
     static let all: [PaymentCategory] = [

@@ -1,27 +1,29 @@
+//
+//  CardDetailViewController.swift
+//  FinanceApp
+//
+//  Created by Macbook on 24.02.26.
+//
+
 import UIKit
 import SnapKit
 
 final class CardDetailViewController: UIViewController {
-
+    
     weak var coordinator: OnboardingCoordinator?
-
+    
     private let card: Card
     private let authService: AuthServiceProtocol
     private let firestoreService: FirestoreServiceProtocol
-
+    
     private let cardGradientLayer = CAGradientLayer()
-
+    
     private lazy var backButton: UIButton = {
-        let b = UIButton(type: .system)
-        b.backgroundColor = AppConstants.Colors.authBackButtonBackground
-        b.layer.cornerRadius = AppConstants.Auth.iconButtonSize / 2
-        let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .semibold)
-        b.setImage(UIImage(systemName: "arrow.left", withConfiguration: config), for: .normal)
-        b.tintColor = AppConstants.Colors.authTitle
+        let b = AppConstants.makeBackButton()
         b.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
         return b
     }()
-
+    
     private let screenTitleLabel: UILabel = {
         let l = UILabel()
         l.text = "Card Details"
@@ -29,21 +31,21 @@ final class CardDetailViewController: UIViewController {
         l.textColor = AppConstants.Colors.authTitle
         return l
     }()
-
+    
     private let cardContainer: UIView = {
         let v = UIView()
         v.layer.cornerRadius = AppConstants.Dashboard.cardCellCornerRadius
         v.clipsToBounds = true
         return v
     }()
-
+    
     private let brandLogoCircle: UIView = {
         let v = UIView()
         v.backgroundColor = AppConstants.Colors.balanceCardText.withAlphaComponent(0.2)
         v.layer.cornerRadius = AppConstants.Dashboard.brandCircleCornerRadius
         return v
     }()
-
+    
     private let brandLogoIcon: UIImageView = {
         let config = UIImage.SymbolConfiguration(pointSize: 14, weight: .bold)
         let iv = UIImageView(image: UIImage(systemName: "building.columns", withConfiguration: config))
@@ -51,7 +53,7 @@ final class CardDetailViewController: UIViewController {
         iv.contentMode = .scaleAspectFit
         return iv
     }()
-
+    
     private let brandNameLabel: UILabel = {
         let l = UILabel()
         l.text = "Mandarin"
@@ -59,14 +61,14 @@ final class CardDetailViewController: UIViewController {
         l.textColor = AppConstants.Colors.balanceCardText
         return l
     }()
-
+    
     private let cardTypeLabel: UILabel = {
         let l = UILabel()
         l.font = .systemFont(ofSize: 11, weight: .semibold)
         l.textColor = AppConstants.Colors.balanceCardText.withAlphaComponent(0.7)
         return l
     }()
-
+    
     private let cardNumberLabel: UILabel = {
         let l = UILabel()
         l.font = .monospacedDigitSystemFont(ofSize: 22, weight: .bold)
@@ -76,7 +78,7 @@ final class CardDetailViewController: UIViewController {
         l.minimumScaleFactor = 0.7
         return l
     }()
-
+    
     private let expiryTitleLabel: UILabel = {
         let l = UILabel()
         l.text = "EXPIRES"
@@ -84,14 +86,14 @@ final class CardDetailViewController: UIViewController {
         l.textColor = AppConstants.Colors.balanceCardText.withAlphaComponent(0.5)
         return l
     }()
-
+    
     private let expiryValueLabel: UILabel = {
         let l = UILabel()
         l.font = .monospacedDigitSystemFont(ofSize: 16, weight: .semibold)
         l.textColor = AppConstants.Colors.balanceCardText.withAlphaComponent(0.85)
         return l
     }()
-
+    
     private let cvvTitleLabel: UILabel = {
         let l = UILabel()
         l.text = "CVV"
@@ -99,7 +101,7 @@ final class CardDetailViewController: UIViewController {
         l.textColor = AppConstants.Colors.balanceCardText.withAlphaComponent(0.5)
         return l
     }()
-
+    
     private let cvvValueLabel: UILabel = {
         let l = UILabel()
         l.text = "•••"
@@ -107,7 +109,7 @@ final class CardDetailViewController: UIViewController {
         l.textColor = AppConstants.Colors.balanceCardText.withAlphaComponent(0.85)
         return l
     }()
-
+    
     private let detailsCard: UIView = {
         let v = UIView()
         v.backgroundColor = AppConstants.Colors.authCardBackground
@@ -118,7 +120,7 @@ final class CardDetailViewController: UIViewController {
         v.layer.shadowRadius = 10
         return v
     }()
-
+    
     private lazy var removeCardButton: UIButton = {
         let b = UIButton(type: .system)
         b.setTitle("Remove Card", for: .normal)
@@ -127,36 +129,36 @@ final class CardDetailViewController: UIViewController {
         b.addTarget(self, action: #selector(removeCardTapped), for: .touchUpInside)
         return b
     }()
-
+    
     private let detailsStack: UIStackView = {
         let s = UIStackView()
         s.axis = .vertical
         s.spacing = 0
         return s
     }()
-
+    
     init(card: Card, authService: AuthServiceProtocol, firestoreService: FirestoreServiceProtocol) {
         self.card = card
         self.authService = authService
         self.firestoreService = firestoreService
         super.init(nibName: nil, bundle: nil)
     }
-
+    
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
         setupConstraints()
     }
-
+    
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         cardGradientLayer.frame = cardContainer.bounds
     }
-
+    
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
         if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
@@ -165,19 +167,19 @@ final class CardDetailViewController: UIViewController {
                 .resolvedColor(with: traitCollection).cgColor
         }
     }
-
+    
     private func setupUI() {
         view.backgroundColor = AppConstants.Colors.dashboardBackground
         navigationController?.setNavigationBarHidden(true, animated: false)
-
+        
         applyGradient()
         cardContainer.layer.insertSublayer(cardGradientLayer, at: 0)
-
+        
         configureCard()
         buildDetailsRows()
         addSubviews()
     }
-
+    
     private func applyGradient() {
         if card.type == .physical {
             cardGradientLayer.colors = [
@@ -194,10 +196,10 @@ final class CardDetailViewController: UIViewController {
         cardGradientLayer.startPoint = CGPoint(x: 0, y: 0)
         cardGradientLayer.endPoint = CGPoint(x: 1, y: 1)
     }
-
+    
     private func configureCard() {
         cardTypeLabel.text = card.type == .physical ? "PHYSICAL CARD" : "VIRTUAL CARD"
-
+        
         if let full = card.fullNumber, full.count >= 16 {
             let spaced = stride(from: 0, to: full.count, by: 4).map { i in
                 let start = full.index(full.startIndex, offsetBy: i)
@@ -208,10 +210,10 @@ final class CardDetailViewController: UIViewController {
         } else {
             cardNumberLabel.text = "••••  ••••  ••••  " + card.lastFourDigits
         }
-
+        
         expiryValueLabel.text = card.expiryDate ?? "—/—"
     }
-
+    
     private func buildDetailsRows() {
         let rows: [(String, String)] = [
             ("Card Name", card.name),
@@ -220,7 +222,7 @@ final class CardDetailViewController: UIViewController {
             ("Currency", card.currency ?? "AZN"),
             ("Expires", card.expiryDate ?? "—")
         ]
-
+        
         for (index, row) in rows.enumerated() {
             let rowView = makeDetailRow(title: row.0, value: row.1)
             detailsStack.addArrangedSubview(rowView)
@@ -234,7 +236,7 @@ final class CardDetailViewController: UIViewController {
             }
         }
     }
-
+    
     private func addSubviews() {
         view.addSubview(backButton)
         view.addSubview(screenTitleLabel)
@@ -252,11 +254,11 @@ final class CardDetailViewController: UIViewController {
         view.addSubview(detailsCard)
         detailsCard.addSubview(detailsStack)
     }
-
+    
     private func setupConstraints() {
         let h = AppConstants.Auth.horizontalPadding
         let pad = AppConstants.Dashboard.balanceCardPadding
-
+        
         backButton.snp.makeConstraints { make in
             make.top.equalTo(view.safeAreaLayoutGuide).offset(AppConstants.Spacing.small)
             make.leading.equalToSuperview().inset(h)
@@ -266,13 +268,13 @@ final class CardDetailViewController: UIViewController {
             make.centerY.equalTo(backButton)
             make.centerX.equalToSuperview()
         }
-
+        
         cardContainer.snp.makeConstraints { make in
             make.top.equalTo(backButton.snp.bottom).offset(AppConstants.Spacing.large)
             make.leading.trailing.equalToSuperview().inset(h)
             make.height.equalTo(200)
         }
-
+        
         brandLogoCircle.snp.makeConstraints { make in
             make.top.equalToSuperview().offset(pad)
             make.leading.equalToSuperview().offset(pad)
@@ -310,7 +312,7 @@ final class CardDetailViewController: UIViewController {
             make.trailing.equalToSuperview().inset(pad)
             make.bottom.equalToSuperview().inset(pad)
         }
-
+        
         detailsCard.snp.makeConstraints { make in
             make.top.equalTo(cardContainer.snp.bottom).offset(AppConstants.Spacing.large)
             make.leading.trailing.equalToSuperview().inset(h)
@@ -318,30 +320,30 @@ final class CardDetailViewController: UIViewController {
         detailsStack.snp.makeConstraints { make in
             make.edges.equalToSuperview().inset(AppConstants.Spacing.medium)
         }
-
+        
         removeCardButton.snp.makeConstraints { make in
             make.top.equalTo(detailsCard.snp.bottom).offset(AppConstants.Spacing.large)
             make.centerX.equalToSuperview()
         }
     }
-
+    
     private func makeDetailRow(title: String, value: String) -> UIView {
         let row = UIView()
-
+        
         let titleLabel = UILabel()
         titleLabel.text = title
         titleLabel.font = .systemFont(ofSize: 14, weight: .regular)
         titleLabel.textColor = AppConstants.Colors.authSubtitle
-
+        
         let valueLabel = UILabel()
         valueLabel.text = value
         valueLabel.font = .systemFont(ofSize: 14, weight: .semibold)
         valueLabel.textColor = AppConstants.Colors.authTitle
         valueLabel.textAlignment = .right
-
+        
         row.addSubview(titleLabel)
         row.addSubview(valueLabel)
-
+        
         row.snp.makeConstraints { make in
             make.height.equalTo(AppConstants.Dashboard.transactionRowHeight * 0.7)
         }
@@ -352,14 +354,14 @@ final class CardDetailViewController: UIViewController {
             make.trailing.centerY.equalToSuperview()
             make.leading.greaterThanOrEqualTo(titleLabel.snp.trailing).offset(AppConstants.Spacing.small)
         }
-
+        
         return row
     }
-
+    
     @objc private func backTapped() {
         navigationController?.popViewController(animated: true)
     }
-
+    
     @objc private func removeCardTapped() {
         let alert = UIAlertController(
             title: "Remove Card",
@@ -372,7 +374,7 @@ final class CardDetailViewController: UIViewController {
         })
         present(alert, animated: true)
     }
-
+    
     private func performRemoveCard() {
         guard let userId = authService.currentUserId() else { return }
         Task {

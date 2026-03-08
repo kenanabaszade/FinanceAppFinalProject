@@ -2,6 +2,8 @@
 //  NotificationsViewController.swift
 //  FinanceApp
 //
+//  Created by Macbook on 2.03.26.
+//
 
 import UIKit
 import SnapKit
@@ -18,6 +20,7 @@ final class NotificationsViewController: UIViewController {
         tv.backgroundColor = AppConstants.Colors.dashboardBackground
         tv.separatorStyle = .none
         tv.sectionHeaderTopPadding = 0
+        tv.contentInset = UIEdgeInsets(top: 8, left: 0, bottom: 24, right: 0)
         return tv
     }()
 
@@ -61,7 +64,8 @@ final class NotificationsViewController: UIViewController {
             .foregroundColor: AppConstants.Colors.authTitle,
             .font: UIFont.systemFont(ofSize: 17, weight: .semibold)
         ]
-        navigationItem.leftBarButtonItem = UIBarButtonItem(image: UIImage(systemName: "chevron.left"), style: .plain, target: self, action: #selector(backTapped))
+        let backImage = UIImage(systemName: "chevron.left")
+        navigationItem.leftBarButtonItem = UIBarButtonItem(image: backImage, style: .plain, target: self, action: #selector(backTapped))
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Mark all read", style: .plain, target: self, action: #selector(markAllTapped))
         navigationItem.rightBarButtonItem?.setTitleTextAttributes([.font: UIFont.systemFont(ofSize: 15, weight: .medium)], for: .normal)
         setupUI()
@@ -69,7 +73,8 @@ final class NotificationsViewController: UIViewController {
         tableView.delegate = self
         tableView.dataSource = self
         tableView.register(NotificationCell.self, forCellReuseIdentifier: NotificationCell.reuseId)
-        tableView.rowHeight = AppConstants.Notifications.rowHeight
+        tableView.rowHeight = UITableView.automaticDimension
+        tableView.estimatedRowHeight = AppConstants.Notifications.rowHeight
         let refresh = UIRefreshControl()
         refresh.addTarget(self, action: #selector(refreshPulled), for: .valueChanged)
         tableView.refreshControl = refresh
@@ -172,25 +177,26 @@ extension NotificationsViewController: UITableViewDataSource, UITableViewDelegat
         wrap.backgroundColor = AppConstants.Colors.dashboardBackground
         let label = UILabel()
         label.text = viewModel.sections[section].title
-        label.font = AppConstants.Fonts.captionMedium(size: 13)
+        label.font = .systemFont(ofSize: 13, weight: .semibold)
         label.textColor = AppConstants.Colors.authSubtitle
         wrap.addSubview(label)
         label.snp.makeConstraints { make in
-            make.leading.equalToSuperview().offset(AppConstants.Auth.horizontalPadding)
+            make.leading.equalToSuperview().offset(AppConstants.Notifications.horizontalInset)
             make.centerY.equalToSuperview()
         }
         return wrap
     }
 
     func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
-        36
+        40
     }
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         let notification = viewModel.sections[indexPath.section].notifications[indexPath.row]
         Task { await viewModel.markAsRead(notification) }
-        if notification.type == "transfer_request", let requestId = notification.transactionId {
+        if notification.type == "transfer_request" || notification.type == "money_request" { 
+            let requestId = notification.transactionId ?? notification.id
             coordinator?.showAcceptTransfer(requestId: requestId)
         }
     }

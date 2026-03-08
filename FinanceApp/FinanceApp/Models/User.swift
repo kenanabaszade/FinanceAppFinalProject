@@ -1,3 +1,10 @@
+//
+//  User.swift
+//  FinanceApp
+//
+//  Created by Macbook on 14.02.26.
+//
+
 import Foundation
 import FirebaseFirestore
 
@@ -8,7 +15,6 @@ struct UserPayload: Codable {
     var lastName: String?
     var phone: String?
     var profileImageURL: String?
-    /// Base64-encoded small JPEG; used when Firebase Storage is not available (no upgrade).
     var profileImageBase64: String?
     var country: String?
     var countryCode: String?
@@ -78,8 +84,7 @@ struct User {
     var firstName: String?
     var lastName: String?
     var phone: String?
-    var profileImageURL: String?
-    /// Base64-encoded small JPEG when Storage is not used.
+    var profileImageURL: String? 
     var profileImageBase64: String?
     var country: String?
     var countryCode: String?

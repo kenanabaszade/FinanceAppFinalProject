@@ -1,19 +1,26 @@
+//
+//  TopUpViewController.swift
+//  FinanceApp
+//
+//  Created by Macbook on 2.28.26.
+//
+
 import UIKit
 import SnapKit
 import Combine
 
 final class TopUpViewController: UIViewController {
-
+    
     private let viewModel: TopUpViewModel
     private var cancellables = Set<AnyCancellable>()
-
+    
     private let scrollView: UIScrollView = {
         let sv = UIScrollView()
         sv.keyboardDismissMode = .onDrag
         return sv
     }()
     private let contentView = UIView()
-
+    
     private let balanceCard: UIView = {
         let v = UIView()
         v.backgroundColor = AppConstants.Colors.authCardBackground
@@ -21,7 +28,7 @@ final class TopUpViewController: UIViewController {
         v.layer.borderWidth = 1
         return v
     }()
-
+    
     private let balanceTitleLabel: UILabel = {
         let l = UILabel()
         l.text = "CURRENT BALANCE"
@@ -29,14 +36,14 @@ final class TopUpViewController: UIViewController {
         l.textColor = AppConstants.Colors.authSubtitle
         return l
     }()
-
+    
     private let balanceAmountLabel: UILabel = {
         let l = UILabel()
         l.font = .systemFont(ofSize: 28, weight: .bold)
         l.textColor = AppConstants.Colors.authTitle
         return l
     }()
-
+    
     private let balanceIconView: UIImageView = {
         let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .medium)
         let iv = UIImageView(image: UIImage(systemName: "dollarsign.circle.fill", withConfiguration: config))
@@ -44,7 +51,7 @@ final class TopUpViewController: UIViewController {
         iv.contentMode = .scaleAspectFit
         return iv
     }()
-
+    
     private let amountSectionLabel: UILabel = {
         let l = UILabel()
         l.text = "Add amount"
@@ -52,7 +59,7 @@ final class TopUpViewController: UIViewController {
         l.textColor = AppConstants.Colors.authSubtitle
         return l
     }()
-
+    
     private let amountField: UITextField = {
         let tf = UITextField()
         tf.placeholder = "0.00"
@@ -64,7 +71,7 @@ final class TopUpViewController: UIViewController {
         tf.layer.cornerRadius = AppConstants.Sizes.cornerRadius
         return tf
     }()
-
+    
     private let currencyLabel: UILabel = {
         let l = UILabel()
         l.font = .systemFont(ofSize: 17, weight: .medium)
@@ -72,7 +79,7 @@ final class TopUpViewController: UIViewController {
         l.textAlignment = .center
         return l
     }()
-
+    
     private let accountsSectionLabel: UILabel = {
         let l = UILabel()
         l.text = "Account"
@@ -80,7 +87,7 @@ final class TopUpViewController: UIViewController {
         l.textColor = AppConstants.Colors.authSubtitle
         return l
     }()
-
+    
     private let accountsTableView: UITableView = {
         let tv = UITableView(frame: .zero, style: .plain)
         tv.isScrollEnabled = false
@@ -90,7 +97,7 @@ final class TopUpViewController: UIViewController {
         tv.separatorInset = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 16)
         return tv
     }()
-
+    
     private let addMoneyButton: UIButton = {
         let b = UIButton(type: .system)
         b.setTitle("Add money", for: .normal)
@@ -98,10 +105,10 @@ final class TopUpViewController: UIViewController {
         b.setTitleColor(.white, for: .normal)
         b.backgroundColor = AppConstants.Colors.mandarinOrange
         b.layer.cornerRadius = AppConstants.Sizes.cornerRadius
-        b.addTarget(self, action: #selector(addMoneyTapped), for: .touchUpInside)
+        b.addTarget(TopUpViewController.self, action: #selector(addMoneyTapped), for: .touchUpInside)
         return b
     }()
-
+    
     private let errorLabel: UILabel = {
         let l = UILabel()
         l.font = .systemFont(ofSize: 13, weight: .regular)
@@ -111,13 +118,13 @@ final class TopUpViewController: UIViewController {
         l.isHidden = true
         return l
     }()
-
+    
     private let activityIndicator: UIActivityIndicatorView = {
         let v = UIActivityIndicatorView(style: .medium)
         v.hidesWhenStopped = true
         return v
     }()
-
+    
     private let emptyAccountsLabel: UILabel = {
         let l = UILabel()
         l.text = "Add a card to create an account"
@@ -128,16 +135,16 @@ final class TopUpViewController: UIViewController {
         l.isHidden = true
         return l
     }()
-
+    
     init(viewModel: TopUpViewModel) {
         self.viewModel = viewModel
         super.init(nibName: nil, bundle: nil)
     }
-
+    
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = AppConstants.Colors.dashboardBackground
@@ -156,18 +163,18 @@ final class TopUpViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow(_:)), name: UIResponder.keyboardWillShowNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide(_:)), name: UIResponder.keyboardWillHideNotification, object: nil)
     }
-
+    
     deinit {
         NotificationCenter.default.removeObserver(self)
     }
-
+    
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
         if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
             balanceCard.layer.borderColor = AppConstants.Colors.authInputBorder.resolvedColor(with: traitCollection).cgColor
         }
     }
-
+    
     private func setupLayout() {
         view.addSubview(scrollView)
         scrollView.addSubview(contentView)
@@ -184,7 +191,7 @@ final class TopUpViewController: UIViewController {
         contentView.addSubview(addMoneyButton)
         contentView.addSubview(errorLabel)
         view.addSubview(activityIndicator)
-
+        
         let padding: CGFloat = AppConstants.Auth.horizontalPadding
         scrollView.snp.makeConstraints { make in
             make.edges.equalTo(view.safeAreaLayoutGuide)
@@ -251,12 +258,12 @@ final class TopUpViewController: UIViewController {
         }
         balanceCard.layer.borderColor = AppConstants.Colors.authInputBorder.resolvedColor(with: traitCollection).cgColor
     }
-
+    
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         Task { await viewModel.loadAccounts() }
     }
-
+    
     private func bind() {
         viewModel.$accounts
             .receive(on: DispatchQueue.main)
@@ -298,7 +305,7 @@ final class TopUpViewController: UIViewController {
             }
             .store(in: &cancellables)
     }
-
+    
     private func updateBalanceDisplay(account: Account?) {
         guard let account = account else {
             balanceAmountLabel.text = "0.00"
@@ -317,12 +324,12 @@ final class TopUpViewController: UIViewController {
         }
         balanceAmountLabel.text = symbol + " " + str
     }
-
+    
     private func updateAccountsTableHeight(count: Int) {
         let h = count == 0 ? 60 : min(220, CGFloat(count) * 72)
         accountsTableView.snp.updateConstraints { make in make.height.equalTo(h) }
     }
-
+    
     private func showSuccessAndRefresh() {
         viewModel.clearSuccess()
         let alert = UIAlertController(title: "Money added", message: "Your balance has been updated.", preferredStyle: .alert)
@@ -331,17 +338,17 @@ final class TopUpViewController: UIViewController {
         })
         present(alert, animated: true)
     }
-
+    
     @objc private func amountChanged() {
         viewModel.amountText = amountField.text ?? ""
     }
-
+    
     @objc private func helpTapped() {
         let alert = UIAlertController(title: "Top Up", message: "Enter an amount and tap Add money to add funds to your selected account.", preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         present(alert, animated: true)
     }
-
+    
     @objc private func addMoneyTapped() {
         view.endEditing(true)
         addMoneyButton.isEnabled = false
@@ -354,7 +361,7 @@ final class TopUpViewController: UIViewController {
             }
         }
     }
-
+    
     @objc private func keyboardWillShow(_ note: Notification) {
         guard let userInfo = note.userInfo,
               let frame = userInfo[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
@@ -368,7 +375,7 @@ final class TopUpViewController: UIViewController {
             self.scrollView.scrollRectToVisible(rect, animated: false)
         }
     }
-
+    
     @objc private func keyboardWillHide(_ note: Notification) {
         guard let userInfo = note.userInfo else { return }
         let duration = (userInfo[UIResponder.keyboardAnimationDurationUserInfoKey] as? NSNumber)?.doubleValue ?? 0.25
@@ -413,7 +420,7 @@ private final class TopUpAccountCell: UITableViewCell {
         return l
     }()
     private let checkmark = UIImageView(image: UIImage(systemName: "checkmark.circle.fill"))
-
+    
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         backgroundColor = AppConstants.Colors.authInputBackground

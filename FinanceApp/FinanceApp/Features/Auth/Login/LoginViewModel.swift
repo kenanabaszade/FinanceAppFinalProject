@@ -3,16 +3,18 @@ import Combine
 
 @MainActor
 final class LoginViewModel: ObservableObject {
-
+    
     @Published private(set) var isLoading = false
     @Published var errorMessage: String?
-
+    
     private let authService: AuthServiceProtocol
-
-    init(authService: AuthServiceProtocol) {
+    private let firestoreService: FirestoreServiceProtocol
+    
+    init(authService: AuthServiceProtocol, firestoreService: FirestoreServiceProtocol) {
         self.authService = authService
+        self.firestoreService = firestoreService
     }
-
+    
     func validate(email: String, password: String) -> LoginValidationState {
         let emailValid = isValidEmail(email)
         let passwordValid = password.count >= AppConstants.Password.minimumLength
@@ -20,23 +22,30 @@ final class LoginViewModel: ObservableObject {
         if !emailValid && !passwordValid { return .invalidBoth }
         return !emailValid ? .invalidEmail : .invalidPassword
     }
-
+    
     func login(email: String, password: String) async {
         isLoading = true
         errorMessage = nil
         do {
             try await authService.signIn(email: email, password: password)
+            
+            if let uid = authService.currentUserId(),
+               try await firestoreService.getUser(uid: uid) == nil {
+                var user = User(uid: uid)
+                user.email = email
+                try await firestoreService.saveUser(user)
+            }
             isLoading = false
         } catch {
             isLoading = false
             errorMessage = error.localizedDescription
         }
     }
-
+    
     func clearError() {
         errorMessage = nil
     }
-
+    
     func sendPasswordReset(email: String) async {
         let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
@@ -52,14 +61,13 @@ final class LoginViewModel: ObservableObject {
         do {
             try await authService.sendPasswordReset(email: trimmed)
             isLoading = false
-            // Success is shown via callback; clear any previous error
             errorMessage = nil
         } catch {
             isLoading = false
             errorMessage = error.localizedDescription
         }
     }
-
+    
     private func isValidEmail(_ string: String) -> Bool {
         let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.contains("@") && trimmed.contains(".") && trimmed.count > 5

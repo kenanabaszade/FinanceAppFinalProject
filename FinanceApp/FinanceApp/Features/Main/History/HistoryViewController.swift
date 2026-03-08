@@ -2,24 +2,26 @@
 //  HistoryViewController.swift
 //  FinanceApp
 //
+//  Created by Macbook on 28.02.26.
+//
 
 import UIKit
 import SnapKit
 import Combine
 
 final class HistoryViewController: UIViewController {
-
+    
     weak var coordinator: OnboardingCoordinator?
     private let viewModel: HistoryViewModel
     private var cancellables = Set<AnyCancellable>()
-
+    
     private let searchContainer: UIView = {
         let v = UIView()
         v.backgroundColor = AppConstants.Colors.authInputBackground
         v.layer.cornerRadius = AppConstants.History.searchBarCornerRadius
         return v
     }()
-
+    
     private let searchIcon: UIImageView = {
         let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .medium)
         let iv = UIImageView(image: UIImage(systemName: "magnifyingglass", withConfiguration: config))
@@ -27,7 +29,7 @@ final class HistoryViewController: UIViewController {
         iv.contentMode = .scaleAspectFit
         return iv
     }()
-
+    
     private lazy var searchField: UITextField = {
         let tf = UITextField()
         tf.placeholder = "Məkan və ya məbləğ axtar"
@@ -41,13 +43,13 @@ final class HistoryViewController: UIViewController {
         tf.clearButtonMode = .whileEditing
         return tf
     }()
-
+    
     private let filterScrollView: UIScrollView = {
         let sv = UIScrollView()
         sv.showsHorizontalScrollIndicator = false
         return sv
     }()
-
+    
     private let filterStack: UIStackView = {
         let s = UIStackView()
         s.axis = .horizontal
@@ -55,7 +57,7 @@ final class HistoryViewController: UIViewController {
         s.alignment = .center
         return s
     }()
-
+    
     private let tableView: UITableView = {
         let tv = UITableView(frame: .zero, style: .plain)
         tv.backgroundColor = AppConstants.Colors.dashboardBackground
@@ -64,20 +66,20 @@ final class HistoryViewController: UIViewController {
         tv.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
         return tv
     }()
-
+    
     private let activityIndicator: UIActivityIndicatorView = {
         let v = UIActivityIndicatorView(style: .medium)
         v.hidesWhenStopped = true
         return v
     }()
-
+    
     init(viewModel: HistoryViewModel) {
         self.viewModel = viewModel
         super.init(nibName: nil, bundle: nil)
     }
-
+    
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = AppConstants.Colors.dashboardBackground
@@ -104,13 +106,19 @@ final class HistoryViewController: UIViewController {
         searchField.addTarget(self, action: #selector(searchChanged), for: .editingChanged)
         Task { await viewModel.loadTransactions() }
     }
-
+    
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         let isRoot = (navigationController?.viewControllers.first === self)
-        navigationItem.leftBarButtonItem = isRoot ? nil : UIBarButtonItem(image: UIImage(systemName: "chevron.left"), style: .plain, target: self, action: #selector(backTapped))
+        if isRoot {
+            navigationItem.leftBarButtonItem = nil
+        } else {
+            let backBtn = AppConstants.makeBackButton()
+            backBtn.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
+            navigationItem.leftBarButtonItem = UIBarButtonItem(customView: backBtn)
+        }
     }
-
+    
     private func setupUI() {
         view.addSubview(searchContainer)
         searchContainer.addSubview(searchIcon)
@@ -120,7 +128,7 @@ final class HistoryViewController: UIViewController {
         view.addSubview(tableView)
         view.addSubview(activityIndicator)
     }
-
+    
     private func setupConstraints() {
         let h = AppConstants.Auth.horizontalPadding
         searchContainer.snp.makeConstraints { make in
@@ -157,7 +165,7 @@ final class HistoryViewController: UIViewController {
             make.center.equalToSuperview()
         }
     }
-
+    
     private func setupFilterPills() {
         filterStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
         for filter in HistoryFilter.allCases {
@@ -168,7 +176,7 @@ final class HistoryViewController: UIViewController {
         let padding = AppConstants.Auth.horizontalPadding
         filterScrollView.contentInset = UIEdgeInsets(top: 0, left: padding, bottom: 0, right: padding)
     }
-
+    
     private func filterPill(for filter: HistoryFilter) -> UIButton {
         let isSelected = viewModel.selectedFilter == filter
         var config = UIButton.Configuration.plain()
@@ -194,14 +202,14 @@ final class HistoryViewController: UIViewController {
         b.addTarget(self, action: #selector(filterPillTapped(_:)), for: .touchUpInside)
         return b
     }
-
+    
     private func updatePillStyle(_ button: UIButton, selected: Bool) {
         guard var config = button.configuration else { return }
         config.baseBackgroundColor = selected ? AppConstants.Colors.mandarinOrange : AppConstants.Colors.authInputBackground
         config.baseForegroundColor = selected ? .white : AppConstants.Colors.authTitle
         button.configuration = config
     }
-
+    
     private func bind() {
         viewModel.$sections
             .receive(on: DispatchQueue.main)
@@ -225,18 +233,18 @@ final class HistoryViewController: UIViewController {
             }
             .store(in: &cancellables)
     }
-
+    
     @objc private func searchChanged() {
         viewModel.searchText = searchField.text ?? ""
         viewModel.refreshSections()
     }
-
+    
     @objc private func filterPillTapped(_ sender: UIButton) {
         let idx = sender.tag
         guard let filter = HistoryFilter.allCases[safe: idx] else { return }
         viewModel.setFilter(filter)
     }
-
+    
     @objc private func backTapped() {
         navigationController?.popViewController(animated: true)
     }
@@ -249,22 +257,22 @@ extension Array {
 }
 
 extension HistoryViewController: UITableViewDataSource, UITableViewDelegate {
-
+    
     func numberOfSections(in tableView: UITableView) -> Int {
         viewModel.sections.count
     }
-
+    
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         viewModel.sections[section].transactions.count
     }
-
+    
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: HistoryTransactionCell.reuseId, for: indexPath) as! HistoryTransactionCell
         let tx = viewModel.sections[indexPath.section].transactions[indexPath.row]
         cell.configure(with: tx)
         return cell
     }
-
+    
     func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         let wrap = UIView()
         wrap.backgroundColor = AppConstants.Colors.dashboardBackground
@@ -279,7 +287,7 @@ extension HistoryViewController: UITableViewDataSource, UITableViewDelegate {
         }
         return wrap
     }
-
+    
     func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
         36
     }

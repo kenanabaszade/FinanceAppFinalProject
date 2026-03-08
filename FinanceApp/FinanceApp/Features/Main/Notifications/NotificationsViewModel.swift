@@ -2,6 +2,8 @@
 //  NotificationsViewModel.swift
 //  FinanceApp
 //
+//  Created by Macbook on 2.03.26.
+//
 
 import Foundation
 import Combine
@@ -136,7 +138,7 @@ final class NotificationsViewModel: ObservableObject {
     private static func friendlyErrorMessage(for error: Error) -> String {
         let msg = error.localizedDescription
         if msg.lowercased().contains("index") || msg.contains("requires an index") {
-            return "Firestore index is required. Create it in Firebase Console → Firestore → Indexes. See Docs/Notifications-Center-Setup.md for details."
+            return "Firestore index is required."
         }
         return msg
     }

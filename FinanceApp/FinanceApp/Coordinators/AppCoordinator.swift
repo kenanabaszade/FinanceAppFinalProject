@@ -6,7 +6,7 @@ class AppCoordinator: Coordinator {
     var childCoordinators: [Coordinator] = []
     private let window: UIWindow
     private let container: ServiceContainerProtocol
-
+    
     init(window: UIWindow, container: ServiceContainerProtocol) {
         self.window = window
         self.container = container
@@ -29,7 +29,7 @@ class AppCoordinator: Coordinator {
         launchVC.coordinator = self
         navigationController.setViewControllers([launchVC], animated: false)
         window.rootViewController = navigationController
-        window.makeKeyAndVisible() 
+        window.makeKeyAndVisible()
         window.isHidden.toggle()
     }
     
@@ -57,7 +57,7 @@ class AppCoordinator: Coordinator {
             }
         }
     }
-
+    
     func showOnboarding() {
         guard Thread.isMainThread else {
             DispatchQueue.main.async { [weak self] in
@@ -65,12 +65,12 @@ class AppCoordinator: Coordinator {
             }
             return
         }
-
+        
         let onboardingCoordinator = OnboardingCoordinator(navigationController: navigationController, container: container)
         addChild(onboardingCoordinator)
         onboardingCoordinator.start()
     }
-
+    
     private func showOnboardingResuming(user: User) {
         guard Thread.isMainThread else {
             DispatchQueue.main.async { [weak self] in
@@ -78,14 +78,12 @@ class AppCoordinator: Coordinator {
             }
             return
         }
-
+        
         let onboardingCoordinator = OnboardingCoordinator(navigationController: navigationController, container: container)
         addChild(onboardingCoordinator)
         onboardingCoordinator.startResuming(user: user)
     }
-    
-    /// Called by OnboardingCoordinator when the user reaches the main app (e.g. tab bar).
-    /// Removes the onboarding coordinator from the hierarchy; the main UI is already on the stack.
+     
     func onOnboardingDidFinish(_ coordinator: OnboardingCoordinator) {
         removeChild(coordinator)
     }

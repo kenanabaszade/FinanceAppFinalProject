@@ -4,18 +4,18 @@ import FirebaseAuth
 class OnboardingCoordinator: Coordinator {
     var navigationController: UINavigationController
     var childCoordinators: [Coordinator] = []
-
+    
     private let container: ServiceContainerProtocol
-
+    
     init(navigationController: UINavigationController, container: ServiceContainerProtocol) {
         self.navigationController = navigationController
         self.container = container
     }
-
+    
     func start() {
         navigate(to: .welcome)
     }
-
+    
     func startResuming(user: User) {
         switch user.onboardingStep {
         case 1:
@@ -37,7 +37,7 @@ class OnboardingCoordinator: Coordinator {
             window.makeKeyAndVisible()
         }
     }
-
+    
     func navigate(to route: OnboardingRoute, replaceStack: Bool = false) {
         let vc: UIViewController
         switch route {
@@ -53,7 +53,7 @@ class OnboardingCoordinator: Coordinator {
             }
             return
         case .login:
-            let vm = LoginViewModel(authService: container.authService)
+            let vm = LoginViewModel(authService: container.authService, firestoreService: container.firestoreService)
             vc = LoginViewController(viewModel: vm)
             (vc as? LoginViewController)?.coordinator = self
         case .signup:
@@ -122,6 +122,20 @@ class OnboardingCoordinator: Coordinator {
                 mainNav.pushViewController(vc, animated: true)
             }
             return
+        case .requestMoneyRecipients:
+            let vm = RequestMoneyRecipientsViewModel(
+                authService: container.authService,
+                firestoreService: container.firestoreService,
+                contactsService: container.contactsService
+            )
+            let recipientsVC = RequestMoneyRecipientsViewController(viewModel: vm)
+            recipientsVC.coordinator = self
+            recipientsVC.hidesBottomBarWhenPushed = true
+            if let tabBar = navigationController.viewControllers.last as? MainTabBarController,
+               let mainNav = tabBar.viewControllers?.first as? UINavigationController {
+                mainNav.pushViewController(recipientsVC, animated: true)
+            }
+            return
         case .enterAmount(let recipient):
             let vm = EnterAmountViewModel(
                 recipient: recipient,
@@ -130,6 +144,20 @@ class OnboardingCoordinator: Coordinator {
             )
             vc = EnterAmountViewController(viewModel: vm)
             (vc as? EnterAmountViewController)?.coordinator = self
+            vc.hidesBottomBarWhenPushed = true
+            if let tabBar = navigationController.viewControllers.last as? MainTabBarController,
+               let mainNav = tabBar.viewControllers?.first as? UINavigationController {
+                mainNav.pushViewController(vc, animated: true)
+            }
+            return
+        case .requestMoneyEnterAmount(let recipient):
+            let vm = RequestMoneyEnterAmountViewModel(
+                recipient: recipient,
+                authService: container.authService,
+                firestoreService: container.firestoreService
+            )
+            vc = RequestMoneyEnterAmountViewController(viewModel: vm)
+            (vc as? RequestMoneyEnterAmountViewController)?.coordinator = self
             vc.hidesBottomBarWhenPushed = true
             if let tabBar = navigationController.viewControllers.last as? MainTabBarController,
                let mainNav = tabBar.viewControllers?.first as? UINavigationController {
@@ -180,7 +208,7 @@ class OnboardingCoordinator: Coordinator {
                 selectedImage: UIImage(systemName: "house.fill")
             )
             mainNav.setNavigationBarHidden(true, animated: false)
-
+            
             let paymentsVM = PaymentsViewModel(
                 authService: container.authService,
                 firestoreService: container.firestoreService
@@ -194,7 +222,7 @@ class OnboardingCoordinator: Coordinator {
                 image: UIImage(systemName: "wallet.pass"),
                 selectedImage: UIImage(systemName: "wallet.pass.fill")
             )
-
+            
             let topUpViewModel = TopUpViewModel(authService: container.authService, firestoreService: container.firestoreService)
             let topUpVC = TopUpViewController(viewModel: topUpViewModel)
             let topUpNav = UINavigationController(rootViewController: topUpVC)
@@ -203,7 +231,7 @@ class OnboardingCoordinator: Coordinator {
                 image: UIImage(systemName: "plus.circle"),
                 selectedImage: UIImage(systemName: "plus.circle.fill")
             )
-
+            
             let historyVM = HistoryViewModel(authService: container.authService, firestoreService: container.firestoreService)
             let historyVC = HistoryViewController(viewModel: historyVM)
             historyVC.coordinator = self
@@ -213,7 +241,7 @@ class OnboardingCoordinator: Coordinator {
                 image: UIImage(systemName: "clock.arrow.circlepath"),
                 selectedImage: UIImage(systemName: "clock.arrow.circlepath")
             )
-
+            
             let profileVM = ProfileViewModel(
                 authService: container.authService,
                 firestoreService: container.firestoreService,
@@ -227,12 +255,12 @@ class OnboardingCoordinator: Coordinator {
                 image: UIImage(systemName: "person"),
                 selectedImage: UIImage(systemName: "person.fill")
             )
-
+            
             let tabBar = MainTabBarController()
             tabBar.coordinator = self
             tabBar.setViewControllers([mainNav, payNav, topUpNav, historyNav, profileNav], animated: false)
             tabBar.selectedIndex = 0
-
+            
             navigationController.setViewControllers([tabBar], animated: true)
             navigationController.setNavigationBarHidden(true, animated: false)
             return
@@ -248,14 +276,14 @@ class OnboardingCoordinator: Coordinator {
             navigationController.setNavigationBarHidden(true, animated: false)
             return
         }
-
+        
         if replaceStack {
             navigationController.setViewControllers([vc], animated: false)
         } else {
             navigationController.pushViewController(vc, animated: true)
         }
     }
-
+    
     private func runCompletionCheckThenMain() {
         guard let uid = Auth.auth().currentUser?.uid else {
             navigate(to: .main)
@@ -285,11 +313,24 @@ class OnboardingCoordinator: Coordinator {
 }
 
 extension OnboardingCoordinator {
-
+    
     func showLogin() { navigate(to: .login) }
     func showSignup() { navigate(to: .signup) }
     func showEmailVerification(email: String) { navigate(to: .emailVerification(email: email)) }
     func showPersonalInfo() { navigate(to: .personalInfo) }
+    func showProfilePersonalInfo() {
+        let vm = ProfilePersonalInfoViewModel(
+            authService: container.authService,
+            firestoreService: container.firestoreService
+        )
+        let vc = ProfilePersonalInfoViewController(viewModel: vm)
+        vc.coordinator = self
+        vc.hidesBottomBarWhenPushed = true
+        if let tabBar = navigationController.viewControllers.last as? MainTabBarController,
+           let nav = tabBar.selectedViewController as? UINavigationController {
+            nav.pushViewController(vc, animated: true)
+        }
+    }
     func showCompliance() { navigate(to: .compliance) }
     func showCompletionCheck() { navigate(to: .completionCheck) }
     func showMain() { navigate(to: .main) }
@@ -308,7 +349,9 @@ extension OnboardingCoordinator {
         }
     }
     func showSendMoney() { navigate(to: .sendMoney) }
+    func showRequestMoneyRecipients() { navigate(to: .requestMoneyRecipients) }
     func showEnterAmount(recipient: SendMoneyRecipient) { navigate(to: .enterAmount(recipient: recipient)) }
+    func showRequestMoneyEnterAmount(recipient: SendMoneyRecipient) { navigate(to: .requestMoneyEnterAmount(recipient: recipient)) }
     func showEnterPayment(category: PaymentCategory) {
         guard let tabBar = navigationController.viewControllers.last as? MainTabBarController,
               let payNav = tabBar.viewControllers?[1] as? UINavigationController else { return }
@@ -324,7 +367,7 @@ extension OnboardingCoordinator {
     }
     func openInviteToContact(recipient: SendMoneyRecipient) {
         let appName = AppConstants.appName
-        let inviteText = "Join me on \(appName) – the smart way to send and manage money. Download here: https://apps.apple.com/app/idYOUR_APP_ID"
+        let inviteText = "PLease download our app I would be very happy !"
         let encoded = inviteText.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? inviteText
         let phone = recipient.phone?.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         let urlString = phone.isEmpty ? "sms:&body=\(encoded)" : "sms:\(phone)&body=\(encoded)"
@@ -332,6 +375,31 @@ extension OnboardingCoordinator {
         UIApplication.shared.open(url)
     }
     func showNotificationsCenter() { navigate(to: .notificationsCenter) }
+    
+    func showCardManagement() {
+        let vm = CardManagementViewModel(
+            authService: container.authService,
+            firestoreService: container.firestoreService
+        )
+        let vc = CardManagementViewController(viewModel: vm)
+        vc.coordinator = self
+        vc.hidesBottomBarWhenPushed = true
+        if let tabBar = navigationController.viewControllers.last as? MainTabBarController,
+           let nav = tabBar.selectedViewController as? UINavigationController {
+            nav.pushViewController(vc, animated: true)
+        }
+    }
+    
+    func showSettings() {
+        let vm = SettingsViewModel()
+        let vc = SettingsViewController(viewModel: vm)
+        vc.coordinator = self
+        vc.hidesBottomBarWhenPushed = true
+        if let tabBar = navigationController.viewControllers.last as? MainTabBarController,
+           let nav = tabBar.selectedViewController as? UINavigationController {
+            nav.pushViewController(vc, animated: true)
+        }
+    }
     func showAcceptTransfer(requestId: String) { navigate(to: .acceptTransfer(requestId: requestId)) }
     func logout() { navigate(to: .logout) }
 }

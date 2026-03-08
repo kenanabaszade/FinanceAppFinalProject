@@ -3,24 +3,24 @@ import Combine
 
 @MainActor
 final class EmailVerificationViewModel: ObservableObject {
-
+    
     let email: String
     var bodyText: String { "We sent a verification email to \(email)." }
-
+    
     @Published private(set) var isLoading = false
     @Published var errorMessage: String?
     @Published private(set) var verifiedSuccess = false
     @Published var isResendSuccess = false
-
+    
     private let authService: AuthServiceProtocol
     private let firestoreService: FirestoreServiceProtocol
-
+    
     init(email: String, authService: AuthServiceProtocol, firestoreService: FirestoreServiceProtocol) {
         self.email = email
         self.authService = authService
         self.firestoreService = firestoreService
     }
-
+    
     func verify() async {
         isLoading = true
         errorMessage = nil
@@ -49,7 +49,7 @@ final class EmailVerificationViewModel: ObservableObject {
             errorMessage = error.localizedDescription
         }
     }
-
+    
     func resend() async {
         isLoading = true
         errorMessage = nil
@@ -64,7 +64,7 @@ final class EmailVerificationViewModel: ObservableObject {
             errorMessage = error.localizedDescription
         }
     }
-
+    
     func clearError() {
         errorMessage = nil
         isResendSuccess = false

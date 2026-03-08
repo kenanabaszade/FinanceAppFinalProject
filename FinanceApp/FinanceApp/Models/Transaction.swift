@@ -2,6 +2,8 @@
 //  Transaction.swift
 //  FinanceApp
 //
+//  Created by Macbook on 23.02.26.
+//
 
 import Foundation
 import FirebaseFirestore
@@ -21,8 +23,7 @@ struct TransactionPayload: Codable {
     let currency: String
     let merchantName: String
     var category: String?
-    var counterpartyUserId: String?
-    /// For purchases: phone number, subscriber ID, card number, fine number, etc.
+    var counterpartyUserId: String? 
     var paymentReference: String?
     let type: TransactionType
     let date: Date

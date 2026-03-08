@@ -2,17 +2,20 @@
 //  PaymentsViewController.swift
 //  FinanceApp
 //
+//  Created by Macbook on 3.03.26.
+//
+
 
 import UIKit
 import SnapKit
 import Combine
 
 final class PaymentsViewController: UIViewController {
-
+    
     weak var coordinator: OnboardingCoordinator?
     private let viewModel: PaymentsViewModel
     private var cancellables = Set<AnyCancellable>()
-
+    
     private let scrollView: UIScrollView = {
         let sv = UIScrollView()
         sv.showsVerticalScrollIndicator = false
@@ -20,7 +23,7 @@ final class PaymentsViewController: UIViewController {
         return sv
     }()
     private let contentView = UIView()
-
+    
     private let headerLabel: UILabel = {
         let l = UILabel()
         l.text = "My Payments"
@@ -28,7 +31,7 @@ final class PaymentsViewController: UIViewController {
         l.textColor = AppConstants.Colors.authTitle
         return l
     }()
-
+    
     private let shortcutsCollectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .horizontal
@@ -40,14 +43,14 @@ final class PaymentsViewController: UIViewController {
         cv.backgroundColor = .clear
         return cv
     }()
-
+    
     private let searchContainer: UIView = {
         let v = UIView()
         v.backgroundColor = AppConstants.Colors.authInputBackground
         v.layer.cornerRadius = AppConstants.Sizes.cornerRadius
         return v
     }()
-
+    
     private let searchIcon: UIImageView = {
         let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .medium)
         let iv = UIImageView(image: UIImage(systemName: "magnifyingglass", withConfiguration: config))
@@ -55,7 +58,7 @@ final class PaymentsViewController: UIViewController {
         iv.contentMode = .scaleAspectFit
         return iv
     }()
-
+    
     private let searchField: UITextField = {
         let tf = UITextField()
         tf.placeholder = "Search"
@@ -65,7 +68,7 @@ final class PaymentsViewController: UIViewController {
         tf.clearButtonMode = .whileEditing
         return tf
     }()
-
+    
     private let categoriesTableView: UITableView = {
         let tv = UITableView(frame: .zero, style: .plain)
         tv.backgroundColor = .clear
@@ -76,16 +79,16 @@ final class PaymentsViewController: UIViewController {
         tv.isScrollEnabled = false
         return tv
     }()
-
+    
     init(viewModel: PaymentsViewModel) {
         self.viewModel = viewModel
         super.init(nibName: nil, bundle: nil)
     }
-
+    
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = AppConstants.Colors.dashboardBackground
@@ -95,7 +98,7 @@ final class PaymentsViewController: UIViewController {
         bind()
         Task { await viewModel.loadAccounts() }
     }
-
+    
     private func setupUI() {
         view.addSubview(scrollView)
         scrollView.addSubview(contentView)
@@ -105,7 +108,7 @@ final class PaymentsViewController: UIViewController {
         searchContainer.addSubview(searchIcon)
         searchContainer.addSubview(searchField)
         contentView.addSubview(categoriesTableView)
-
+        
         let h = AppConstants.Auth.horizontalPadding
         scrollView.snp.makeConstraints { make in
             make.edges.equalTo(view.safeAreaLayoutGuide)
@@ -144,7 +147,7 @@ final class PaymentsViewController: UIViewController {
             make.bottom.equalToSuperview().offset(-24)
         }
     }
-
+    
     private func setupShortcuts() {
         shortcutsCollectionView.delegate = self
         shortcutsCollectionView.dataSource = self
@@ -152,13 +155,13 @@ final class PaymentsViewController: UIViewController {
         shortcutsCollectionView.contentInset = UIEdgeInsets(top: 0, left: padding, bottom: 0, right: padding)
         shortcutsCollectionView.register(ShortcutCell.self, forCellWithReuseIdentifier: ShortcutCell.reuseId)
     }
-
+    
     private func setupTable() {
         categoriesTableView.delegate = self
         categoriesTableView.dataSource = self
         categoriesTableView.register(CategoryCell.self, forCellReuseIdentifier: CategoryCell.reuseId)
     }
-
+    
     private func bind() {
         viewModel.$searchText
             .receive(on: DispatchQueue.main)
@@ -169,14 +172,14 @@ final class PaymentsViewController: UIViewController {
             .store(in: &cancellables)
         searchField.addTarget(self, action: #selector(searchChanged), for: .editingChanged)
     }
-
+    
     private func updateTableHeight() {
         let count = viewModel.filteredCategories.count
         categoriesTableView.snp.updateConstraints { make in
             make.height.equalTo(CGFloat(count) * 64)
         }
     }
-
+    
     @objc private func searchChanged() {
         viewModel.searchText = searchField.text ?? ""
     }
@@ -217,14 +220,13 @@ extension PaymentsViewController: UITableViewDataSource, UITableViewDelegate {
     }
 }
 
-// MARK: - Shortcut cell
 private final class ShortcutCell: UICollectionViewCell {
     static let reuseId = "ShortcutCell"
     private let iconBg = UIView()
     private let iconView = UIImageView()
     private let titleLabel = UILabel()
     private let subtitleLabel = UILabel()
-
+    
     override init(frame: CGRect) {
         super.init(frame: frame)
         contentView.backgroundColor = AppConstants.Colors.authCardBackground
@@ -271,14 +273,13 @@ private final class ShortcutCell: UICollectionViewCell {
     }
 }
 
-// MARK: - Category cell
 private final class CategoryCell: UITableViewCell {
     static let reuseId = "CategoryCell"
     private let iconBg = UIView()
     private let iconView = UIImageView()
     private let titleLabel = UILabel()
     private let badgeLabel = UILabel()
-
+    
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         backgroundColor = .clear

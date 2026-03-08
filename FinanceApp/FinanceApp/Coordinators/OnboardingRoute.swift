@@ -12,7 +12,9 @@ enum OnboardingRoute {
     case cardDetail(card: Card)
     case addCard
     case sendMoney
+    case requestMoneyRecipients
     case enterAmount(recipient: SendMoneyRecipient)
+    case requestMoneyEnterAmount(recipient: SendMoneyRecipient)
     case acceptTransfer(requestId: String)
     case notificationsCenter
     case logout

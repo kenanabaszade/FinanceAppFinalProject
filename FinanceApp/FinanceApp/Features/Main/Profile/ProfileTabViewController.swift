@@ -2,40 +2,38 @@
 //  ProfileTabViewController.swift
 //  FinanceApp
 //
-
+//  Created by Macbook on 2.24.26.
+//
 import UIKit
 import SnapKit
 import Combine
 import Photos
 
 final class ProfileTabViewController: UIViewController {
-
+    
     weak var coordinator: OnboardingCoordinator?
     private let viewModel: ProfileViewModel
     private var cancellables = Set<AnyCancellable>()
-
+    
     private let scrollView: UIScrollView = {
         let sv = UIScrollView()
         sv.showsVerticalScrollIndicator = false
+        sv.isScrollEnabled = false
+        sv.alwaysBounceVertical = false
+        sv.backgroundColor = .clear
         return sv
     }()
-
+    
     private let contentView = UIView()
-
+    
     private let navBar: UIView = {
         let v = UIView()
         v.backgroundColor = AppConstants.Colors.dashboardBackground
         return v
     }()
-
-    private let backButton: UIButton = {
-        let b = UIButton(type: .system)
-        let config = UIImage.SymbolConfiguration(pointSize: 18, weight: .semibold)
-        b.setImage(UIImage(systemName: "chevron.left", withConfiguration: config), for: .normal)
-        b.tintColor = AppConstants.Colors.authTitle
-        return b
-    }()
-
+    
+    private lazy var backButton: UIButton = AppConstants.makeBackButton()
+    
     private let navTitleLabel: UILabel = {
         let l = UILabel()
         l.text = "Profile"
@@ -43,7 +41,7 @@ final class ProfileTabViewController: UIViewController {
         l.textColor = AppConstants.Colors.authTitle
         return l
     }()
-
+    
     private let settingsButton: UIButton = {
         let b = UIButton(type: .system)
         let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .regular)
@@ -51,20 +49,20 @@ final class ProfileTabViewController: UIViewController {
         b.tintColor = AppConstants.Colors.authTitle
         return b
     }()
-
+    
     private let cardContainer: UIView = {
         let v = UIView()
-        v.backgroundColor = AppConstants.Colors.authCardBackground
-        v.layer.cornerRadius = 24
-        v.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
+        v.backgroundColor = .clear
+        v.layer.cornerRadius = 0
+        v.layer.maskedCorners = []
         return v
     }()
-
+    
     private let avatarContainer: UIView = {
         let v = UIView()
         return v
     }()
-
+    
     private let avatarImageView: UIImageView = {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
@@ -74,7 +72,7 @@ final class ProfileTabViewController: UIViewController {
         iv.image = UIImage(systemName: "person.circle.fill")
         return iv
     }()
-
+    
     private let cameraButton: UIButton = {
         let b = UIButton(type: .system)
         b.backgroundColor = AppConstants.Colors.mandarinOrange
@@ -83,7 +81,7 @@ final class ProfileTabViewController: UIViewController {
         b.setImage(UIImage(systemName: "camera.fill", withConfiguration: config), for: .normal)
         return b
     }()
-
+    
     private let nameLabel: UILabel = {
         let l = UILabel()
         l.font = .systemFont(ofSize: 22, weight: .bold)
@@ -91,7 +89,7 @@ final class ProfileTabViewController: UIViewController {
         l.textAlignment = .center
         return l
     }()
-
+    
     private let memberLabel: UILabel = {
         let l = UILabel()
         l.text = "Mandarin Plus Member"
@@ -100,7 +98,7 @@ final class ProfileTabViewController: UIViewController {
         l.textAlignment = .center
         return l
     }()
-
+    
     private let accountIdLabel: UILabel = {
         let l = UILabel()
         l.font = .systemFont(ofSize: 13, weight: .regular)
@@ -108,7 +106,7 @@ final class ProfileTabViewController: UIViewController {
         l.textAlignment = .center
         return l
     }()
-
+    
     private let menuStack: UIStackView = {
         let s = UIStackView()
         s.axis = .vertical
@@ -116,7 +114,7 @@ final class ProfileTabViewController: UIViewController {
         s.backgroundColor = .clear
         return s
     }()
-
+    
     private let logoutButton: UIButton = {
         let b = UIButton(type: .system)
         b.backgroundColor = AppConstants.Colors.authInputBackground
@@ -130,7 +128,7 @@ final class ProfileTabViewController: UIViewController {
         b.semanticContentAttribute = .forceLeftToRight
         return b
     }()
-
+    
     private let versionLabel: UILabel = {
         let l = UILabel()
         l.font = .systemFont(ofSize: 12, weight: .regular)
@@ -138,27 +136,29 @@ final class ProfileTabViewController: UIViewController {
         l.textAlignment = .center
         return l
     }()
-
+    
     private let imageLoadingIndicator: UIActivityIndicatorView = {
         let i = UIActivityIndicatorView(style: .medium)
         i.hidesWhenStopped = true
         i.color = .white
         return i
     }()
-
+    
     init(viewModel: ProfileViewModel) {
         self.viewModel = viewModel
         super.init(nibName: nil, bundle: nil)
     }
-
+    
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Profile"
-        view.backgroundColor = AppConstants.Colors.dashboardBackground
+        navigationItem.largeTitleDisplayMode = .never
+        navigationController?.setNavigationBarHidden(false, animated: false)
+        view.backgroundColor = .systemBackground
         tabBarItem = UITabBarItem(
             title: "Profile",
             image: UIImage(systemName: "person"),
@@ -169,32 +169,32 @@ final class ProfileTabViewController: UIViewController {
         bind()
         cameraButton.addTarget(self, action: #selector(cameraTapped), for: .touchUpInside)
         logoutButton.addTarget(self, action: #selector(logoutTapped), for: .touchUpInside)
-        backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
-        settingsButton.addTarget(self, action: #selector(settingsTapped), for: .touchUpInside)
+        navBar.isHidden = true
         Task { await viewModel.loadUser() }
     }
-
+    
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         Task { await viewModel.loadUser() }
     }
-
+    
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         avatarImageView.layer.cornerRadius = avatarImageView.bounds.width / 2
         cameraButton.layer.cornerRadius = cameraButton.bounds.width / 2
     }
-
-    private func setupUI() {
+    
+    
+    private let addSubViews() {
         view.addSubview(navBar)
         navBar.addSubview(backButton)
         navBar.addSubview(navTitleLabel)
         navBar.addSubview(settingsButton)
-
+        
         view.addSubview(scrollView)
         scrollView.addSubview(contentView)
         contentView.addSubview(cardContainer)
-
+        
         cardContainer.addSubview(avatarContainer)
         avatarContainer.addSubview(avatarImageView)
         avatarContainer.addSubview(cameraButton)
@@ -205,7 +205,10 @@ final class ProfileTabViewController: UIViewController {
         cardContainer.addSubview(menuStack)
         cardContainer.addSubview(logoutButton)
         cardContainer.addSubview(versionLabel)
-
+    }
+    
+    private let setupConrstraints() {
+        
         let h = AppConstants.Auth.horizontalPadding
         navBar.snp.makeConstraints { make in
             make.top.leading.trailing.equalTo(view.safeAreaLayoutGuide)
@@ -214,7 +217,7 @@ final class ProfileTabViewController: UIViewController {
         backButton.snp.makeConstraints { make in
             make.leading.equalToSuperview().offset(h)
             make.centerY.equalToSuperview()
-            make.width.height.equalTo(44)
+            make.width.height.equalTo(AppConstants.Auth.iconButtonSize)
         }
         navTitleLabel.snp.makeConstraints { make in
             make.center.equalToSuperview()
@@ -224,7 +227,7 @@ final class ProfileTabViewController: UIViewController {
             make.centerY.equalToSuperview()
             make.width.height.equalTo(44)
         }
-
+        
         scrollView.snp.makeConstraints { make in
             make.top.equalTo(navBar.snp.bottom)
             make.leading.trailing.bottom.equalTo(view.safeAreaLayoutGuide)
@@ -233,18 +236,20 @@ final class ProfileTabViewController: UIViewController {
             make.edges.equalToSuperview()
             make.width.equalTo(scrollView)
         }
-        let cardHorizontalInset: CGFloat = 20
-        let cardTopPadding: CGFloat = 24
+        let cardHorizontalInset: CGFloat = 16
+        let cardTopPadding: CGFloat = 12
+        
         cardContainer.snp.makeConstraints { make in
             make.top.equalToSuperview().offset(cardTopPadding)
             make.leading.equalToSuperview().offset(cardHorizontalInset)
             make.trailing.equalToSuperview().inset(cardHorizontalInset)
             make.bottom.equalTo(contentView.snp.bottom).offset(-cardTopPadding)
         }
-
-        let avatarSize: CGFloat = 100
-        let cameraSize: CGFloat = 36
-        let cardInnerPadding: CGFloat = 24
+        
+        let avatarSize: CGFloat = 88
+        let cameraSize: CGFloat = 32
+        let cardInnerPadding: CGFloat = 18
+        
         avatarContainer.snp.makeConstraints { make in
             make.top.equalToSuperview().offset(cardInnerPadding + 8)
             make.centerX.equalToSuperview()
@@ -260,7 +265,7 @@ final class ProfileTabViewController: UIViewController {
         imageLoadingIndicator.snp.makeConstraints { make in
             make.center.equalTo(avatarImageView)
         }
-
+        
         nameLabel.snp.makeConstraints { make in
             make.top.equalTo(avatarContainer.snp.bottom).offset(20)
             make.leading.trailing.equalToSuperview().inset(cardInnerPadding)
@@ -288,17 +293,24 @@ final class ProfileTabViewController: UIViewController {
             make.centerX.equalToSuperview()
             make.bottom.equalToSuperview().offset(-28)
         }
-
+    }
+    
+    private func setupUI() {
+        
+        addSubViews()
+        setupConrstraints()
+        
         if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
             versionLabel.text = "Version \(version) (AZN-PROD)"
         } else {
             versionLabel.text = "Version 1.0 (AZN-PROD)"
         }
     }
-
+    
     private func setupMenuRows() {
         let rows: [(icon: String, title: String)] = [
             ("person", "Personal Information"),
+            ("gearshape", "Settings"),
             ("lock", "Security & Privacy"),
             ("creditcard", "Card Management"),
             ("bell", "Notifications"),
@@ -315,12 +327,14 @@ final class ProfileTabViewController: UIViewController {
             }
         }
     }
-
+    
     private func makeMenuRow(icon: String, title: String) -> UIView {
         let row = UIButton(type: .system)
         row.contentHorizontalAlignment = .left
         row.backgroundColor = .clear
+        row.accessibilityLabel = title
         let container = UIView()
+        container.isUserInteractionEnabled = false
         row.addSubview(container)
         let iconView = UIImageView(image: UIImage(systemName: icon))
         iconView.tintColor = AppConstants.Colors.mandarinOrange
@@ -352,10 +366,16 @@ final class ProfileTabViewController: UIViewController {
             make.top.bottom.leading.trailing.equalToSuperview()
             make.height.equalTo(52)
         }
-        row.addAction(UIAction { [weak self] _ in self?.menuRowTapped(title: title) }, for: .touchUpInside)
+        row.addTarget(self, action: #selector(menuRowButtonTapped(_:)), for: .touchUpInside)
         return row
     }
-
+    
+    @objc private func menuRowButtonTapped(_ sender: UIButton) {
+        let title = sender.accessibilityLabel ?? ""
+        
+        menuRowTapped(title: title)
+    }
+    
     private func bind() {
         viewModel.$user
             .receive(on: DispatchQueue.main)
@@ -365,7 +385,7 @@ final class ProfileTabViewController: UIViewController {
                 self?.loadAvatarIfNeeded()
             }
             .store(in: &cancellables)
-
+        
         viewModel.$isUploadingImage
             .receive(on: DispatchQueue.main)
             .sink { [weak self] uploading in
@@ -376,7 +396,7 @@ final class ProfileTabViewController: UIViewController {
                 }
             }
             .store(in: &cancellables)
-
+        
         viewModel.$errorMessage
             .receive(on: DispatchQueue.main)
             .sink { [weak self] message in
@@ -389,7 +409,7 @@ final class ProfileTabViewController: UIViewController {
             }
             .store(in: &cancellables)
     }
-
+    
     private func loadAvatarIfNeeded() {
         if let base64 = viewModel.user?.profileImageBase64,
            let data = Data(base64Encoded: base64),
@@ -419,10 +439,22 @@ final class ProfileTabViewController: UIViewController {
             }
         }
     }
-
+    
     private func menuRowTapped(title: String) {
+        if title == "Personal Information" {
+            coordinator?.showProfilePersonalInfo()
+            return
+        }
+        if title == "Settings" {
+            coordinator?.showSettings()
+            return
+        }
         if title == "Notifications" {
             coordinator?.showNotificationsCenter()
+            return
+        }
+        if title == "Card Management" {
+            coordinator?.showCardManagement()
             return
         }
         let alert = UIAlertController(title: title, message: "Coming soon.", preferredStyle: .alert)
@@ -434,7 +466,7 @@ final class ProfileTabViewController: UIViewController {
         }
         present(alert, animated: true)
     }
-
+    
     @objc private func cameraTapped() {
         let alert = UIAlertController(title: "Profile Photo", message: nil, preferredStyle: .actionSheet)
         alert.addAction(UIAlertAction(title: "Take Photo", style: .default) { [weak self] _ in
@@ -450,7 +482,7 @@ final class ProfileTabViewController: UIViewController {
         }
         present(alert, animated: true)
     }
-
+    
     private func requestCameraAndPresentPicker() {
         guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
             showAlert(message: "Camera is not available on this device.")
@@ -460,7 +492,7 @@ final class ProfileTabViewController: UIViewController {
             self?.presentImagePicker(sourceType: .camera)
         }
     }
-
+    
     private func requestPhotoLibraryAndPresentPicker() {
         guard UIImagePickerController.isSourceTypeAvailable(.photoLibrary) else {
             showAlert(message: "Photo library is not available.")
@@ -490,7 +522,7 @@ final class ProfileTabViewController: UIViewController {
             }
         }
     }
-
+    
     private func presentImagePicker(sourceType: UIImagePickerController.SourceType) {
         let picker = UIImagePickerController()
         picker.sourceType = sourceType
@@ -499,21 +531,20 @@ final class ProfileTabViewController: UIViewController {
         picker.modalPresentationStyle = .fullScreen
         present(picker, animated: true)
     }
-
+    
     private func showAlert(message: String) {
         let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         present(alert, animated: true)
     }
-
+    
     @objc private func logoutTapped() {
         coordinator?.logout()
     }
-
+    
     @objc private func backTapped() {
-        // Tab context: no-op or pop if embedded in nav
     }
-
+    
     @objc private func settingsTapped() {
         menuRowTapped(title: "Settings")
     }
@@ -529,15 +560,14 @@ extension ProfileTabViewController: UIImagePickerControllerDelegate, UINavigatio
         guard let data = image.jpegData(compressionQuality: 0.8) else {
             showAlert(message: "Could not process the image.")
             return
-        }
-        // Show chosen image immediately (optimistic update)
+        } 
         avatarImageView.image = image
         avatarImageView.contentMode = .scaleAspectFill
         Task {
             await viewModel.uploadAndSetProfileImage(data)
         }
     }
-
+    
     func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
         picker.dismiss(animated: true)
     }

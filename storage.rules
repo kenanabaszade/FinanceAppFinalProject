@@ -1,0 +1,12 @@
+rules_version = '2';
+// Firebase Storage rules for Mandarin app.
+// Use these in Firebase Console → Storage → Rules (or deploy with Firebase CLI).
+// The app uploads profile photos to profile_images/{userId}.jpg
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /profile_images/{userId}.jpg {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
