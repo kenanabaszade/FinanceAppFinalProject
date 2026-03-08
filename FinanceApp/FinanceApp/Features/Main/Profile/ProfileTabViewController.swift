@@ -15,16 +15,11 @@ final class ProfileTabViewController: UIViewController {
     private let viewModel: ProfileViewModel
     private var cancellables = Set<AnyCancellable>()
     
-    private let scrollView: UIScrollView = {
-        let sv = UIScrollView()
-        sv.showsVerticalScrollIndicator = false
-        sv.isScrollEnabled = false
-        sv.alwaysBounceVertical = false
-        sv.backgroundColor = .clear
-        return sv
+    private let contentView: UIView = {
+        let v = UIView()
+        v.backgroundColor = .clear
+        return v
     }()
-    
-    private let contentView = UIView()
     
     private let navBar: UIView = {
         let v = UIView()
@@ -191,8 +186,7 @@ final class ProfileTabViewController: UIViewController {
         navBar.addSubview(navTitleLabel)
         navBar.addSubview(settingsButton)
         
-        view.addSubview(scrollView)
-        scrollView.addSubview(contentView)
+        view.addSubview(contentView)
         contentView.addSubview(cardContainer)
         
         cardContainer.addSubview(avatarContainer)
@@ -228,30 +222,26 @@ final class ProfileTabViewController: UIViewController {
             make.width.height.equalTo(44)
         }
         
-        scrollView.snp.makeConstraints { make in
+        contentView.snp.makeConstraints { make in
             make.top.equalTo(navBar.snp.bottom)
             make.leading.trailing.bottom.equalTo(view.safeAreaLayoutGuide)
         }
-        contentView.snp.makeConstraints { make in
-            make.edges.equalToSuperview()
-            make.width.equalTo(scrollView)
-        }
         let cardHorizontalInset: CGFloat = 16
-        let cardTopPadding: CGFloat = 12
+        let cardInnerPadding: CGFloat = 18
+        let bottomPadding: CGFloat = 28
         
         cardContainer.snp.makeConstraints { make in
-            make.top.equalToSuperview().offset(cardTopPadding)
+            make.top.equalToSuperview()
             make.leading.equalToSuperview().offset(cardHorizontalInset)
             make.trailing.equalToSuperview().inset(cardHorizontalInset)
-            make.bottom.equalTo(contentView.snp.bottom).offset(-cardTopPadding)
+            make.bottom.equalToSuperview().offset(-bottomPadding)
         }
         
         let avatarSize: CGFloat = 88
         let cameraSize: CGFloat = 32
-        let cardInnerPadding: CGFloat = 18
         
         avatarContainer.snp.makeConstraints { make in
-            make.top.equalToSuperview().offset(cardInnerPadding + 8)
+            make.top.equalToSuperview().offset(cardInnerPadding)
             make.centerX.equalToSuperview()
             make.width.height.equalTo(avatarSize)
         }
@@ -291,7 +281,6 @@ final class ProfileTabViewController: UIViewController {
         versionLabel.snp.makeConstraints { make in
             make.top.equalTo(logoutButton.snp.bottom).offset(24)
             make.centerX.equalToSuperview()
-            make.bottom.equalToSuperview().offset(-28)
         }
     }
     
@@ -311,10 +300,8 @@ final class ProfileTabViewController: UIViewController {
         let rows: [(icon: String, title: String)] = [
             ("person", "Personal Information"),
             ("gearshape", "Settings"),
-            ("lock", "Security & Privacy"),
             ("creditcard", "Card Management"),
-            ("bell", "Notifications"),
-            ("questionmark.circle", "Help & Support")
+            ("bell", "Notifications")
         ]
         for (index, item) in rows.enumerated() {
             let row = makeMenuRow(icon: item.icon, title: item.title)

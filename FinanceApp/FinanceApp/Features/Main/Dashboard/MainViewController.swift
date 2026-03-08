@@ -154,9 +154,20 @@ final class MainViewController: UIViewController {
         setupUI()
         setupConstraints()
     }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        scrollView.contentInset = UIEdgeInsets(
+            top: view.safeAreaInsets.top,
+            left: 0,
+            bottom: view.safeAreaInsets.bottom,
+            right: 0
+        )
+    }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        navigationController?.setNavigationBarHidden(true, animated: animated)
         Task { await viewModel.loadDashboard() }
     }
     
@@ -210,9 +221,7 @@ final class MainViewController: UIViewController {
         let h = AppConstants.Auth.horizontalPadding
         
         scrollView.snp.makeConstraints { make in
-            make.top.equalTo(view.safeAreaLayoutGuide)
-            make.leading.trailing.equalToSuperview()
-            make.bottom.equalTo(view.safeAreaLayoutGuide.snp.bottom)
+            make.top.leading.trailing.bottom.equalToSuperview()
         }
         contentView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
@@ -444,7 +453,9 @@ final class MainViewController: UIViewController {
         coordinator?.showNotificationsCenter()
     }
     
-    @objc private func seeAllTapped() { }
+    @objc private func seeAllTapped() {
+        tabBarController?.selectedIndex = 3
+    }
     
     @objc private func sendTapped() {
         coordinator?.showSendMoney()
