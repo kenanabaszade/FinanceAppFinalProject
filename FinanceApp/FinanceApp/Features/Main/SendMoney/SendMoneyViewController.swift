@@ -18,7 +18,7 @@ final class SendMoneyViewController: UIViewController {
     
     private let navBar: UIView = {
         let v = UIView()
-        v.backgroundColor = UIColor.secondarySystemBackground
+        v.backgroundColor = .clear
         return v
     }()
     
@@ -34,15 +34,6 @@ final class SendMoneyViewController: UIViewController {
         l.font = .systemFont(ofSize: 18, weight: .bold)
         l.textColor = .label
         return l
-    }()
-    
-    private lazy var qrButton: UIButton = {
-        let b = UIButton(type: .system)
-        let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .medium)
-        b.setImage(UIImage(systemName: "qrcode", withConfiguration: config), for: .normal)
-        b.tintColor = .label
-        b.addTarget(self, action: #selector(qrTapped), for: .touchUpInside)
-        return b
     }()
     
     private let searchContainer: UIView = {
@@ -125,7 +116,7 @@ final class SendMoneyViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = UIColor.systemGroupedBackground
+        view.backgroundColor = AppConstants.Colors.dashboardBackground
         navigationController?.setNavigationBarHidden(true, animated: false)
         setupNavBar()
         setupSearch()
@@ -145,7 +136,6 @@ final class SendMoneyViewController: UIViewController {
         view.addSubview(navBar)
         navBar.addSubview(backButton)
         navBar.addSubview(titleLabel)
-        navBar.addSubview(qrButton)
         
         navBar.snp.makeConstraints { make in
             make.top.equalTo(view.safeAreaLayoutGuide.snp.top)
@@ -159,11 +149,6 @@ final class SendMoneyViewController: UIViewController {
         }
         titleLabel.snp.makeConstraints { make in
             make.center.equalToSuperview()
-        }
-        qrButton.snp.makeConstraints { make in
-            make.trailing.equalToSuperview().inset(8)
-            make.centerY.equalToSuperview()
-            make.size.equalTo(44)
         }
     }
     
@@ -217,15 +202,12 @@ final class SendMoneyViewController: UIViewController {
         tableView.delegate = self
         tableView.dataSource = self
         tableView.register(RecipientCell.self, forCellReuseIdentifier: RecipientCell.reuseId)
-        tableView.register(RecipientSectionHeader.self, forHeaderFooterViewReuseIdentifier: RecipientSectionHeader.reuseId)
         tableView.backgroundColor = .clear
         tableView.tableFooterView = UIView()
-        tableView.sectionIndexMinimumDisplayRowCount = 1
         tableView.separatorStyle = .singleLine
         tableView.separatorColor = .separator
-        let leftInset = AppConstants.Auth.horizontalPadding + 44 + 12
-        tableView.separatorInset = UIEdgeInsets(top: 0, left: leftInset, bottom: 0, right: AppConstants.Auth.horizontalPadding)
-        tableView.estimatedRowHeight = 72
+        tableView.separatorInset = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 16)
+        tableView.estimatedRowHeight = 64
         
         tableView.snp.makeConstraints { make in
             make.top.equalTo(appUsersSectionContainer.snp.bottom).offset(16)
@@ -282,9 +264,6 @@ final class SendMoneyViewController: UIViewController {
         navigationController?.popViewController(animated: true)
     }
     
-    @objc private func qrTapped() {
-    }
-    
     @objc private func searchChanged() {
         viewModel.searchText = searchField.text ?? ""
     }
@@ -323,27 +302,41 @@ extension SendMoneyViewController: UITableViewDataSource, UITableViewDelegate {
     }
     
     func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
-        let header = tableView.dequeueReusableHeaderFooterView(withIdentifier: RecipientSectionHeader.reuseId) as? RecipientSectionHeader
-        header?.configure(letter: viewModel.sectionedRecipients[section].letter)
-        return header
+        let container = UIView()
+        container.backgroundColor = .clear
+        let bgView = UIView()
+        bgView.backgroundColor = AppConstants.Colors.authInputBackground
+        bgView.layer.cornerRadius = 6
+        container.addSubview(bgView)
+        let label = UILabel()
+        label.text = viewModel.sectionedRecipients[section].letter.uppercased()
+        label.font = .systemFont(ofSize: 13, weight: .bold)
+        label.textColor = AppConstants.Colors.authSubtitle
+        bgView.addSubview(label)
+        bgView.snp.makeConstraints { make in
+            make.leading.trailing.equalToSuperview().inset(16)
+            make.top.bottom.equalToSuperview().inset(4)
+        }
+        label.snp.makeConstraints { make in
+            make.leading.trailing.equalToSuperview().inset(12)
+            make.centerY.equalToSuperview()
+        }
+        return container
     }
     
     func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
-        28
+        36
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: RecipientCell.reuseId, for: indexPath) as! RecipientCell
         let recipient = viewModel.sectionedRecipients[indexPath.section].recipients[indexPath.row]
         cell.configure(with: recipient)
-        cell.onSendTapped = { [weak self] in
-            self?.handleRecipientTapped(recipient)
-        }
         return cell
     }
     
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        72
+        64
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
@@ -358,14 +351,6 @@ extension SendMoneyViewController: UITableViewDataSource, UITableViewDelegate {
         } else {
             coordinator?.openInviteToContact(recipient: recipient)
         }
-    }
-    
-    func sectionIndexTitles(for tableView: UITableView) -> [String]? {
-        viewModel.sectionedRecipients.map(\.letter)
-    }
-    
-    func tableView(_ tableView: UITableView, sectionForSectionIndexTitle title: String, at index: Int) -> Int {
-        index
     }
 }
 
@@ -418,34 +403,6 @@ private final class RecentRecipientCell: UICollectionViewCell {
     }
 }
 
-private final class RecipientSectionHeader: UITableViewHeaderFooterView {
-    
-    static let reuseId = "RecipientSectionHeader"
-    
-    private let letterLabel: UILabel = {
-        let l = UILabel()
-        l.font = .systemFont(ofSize: 13, weight: .semibold)
-        l.textColor = .secondaryLabel
-        return l
-    }()
-    
-    override init(reuseIdentifier: String?) {
-        super.init(reuseIdentifier: reuseIdentifier)
-        contentView.backgroundColor = UIColor.systemGroupedBackground
-        contentView.addSubview(letterLabel)
-        letterLabel.snp.makeConstraints { make in
-            make.leading.equalToSuperview().inset(AppConstants.Auth.horizontalPadding)
-            make.centerY.equalToSuperview()
-        }
-    }
-    
-    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-    
-    func configure(letter: String) {
-        letterLabel.text = letter
-    }
-}
-
 private final class RecipientCell: UITableViewCell {
     
     static let reuseId = "RecipientCell"
@@ -453,77 +410,42 @@ private final class RecipientCell: UITableViewCell {
     private let avatarView = RecipientAvatarView()
     private let nameLabel: UILabel = {
         let l = UILabel()
-        l.font = .systemFont(ofSize: 17, weight: .semibold)
-        l.textColor = .label
+        l.font = .systemFont(ofSize: 16, weight: .semibold)
+        l.textColor = AppConstants.Colors.authTitle
         l.numberOfLines = 1
         l.lineBreakMode = .byTruncatingTail
         return l
     }()
-    private let badgeLabel: UILabel = {
+    private let detailLabel: UILabel = {
         let l = UILabel()
-        l.font = .systemFont(ofSize: 10, weight: .semibold)
-        l.textColor = .white
-        l.backgroundColor = AppConstants.Colors.mandarinOrange
-        l.layer.cornerRadius = 4
-        l.clipsToBounds = true
-        l.textAlignment = .center
+        l.font = .systemFont(ofSize: 13, weight: .regular)
+        l.textColor = AppConstants.Colors.authSubtitle
         return l
     }()
-    private let phoneLabel: UILabel = {
-        let l = UILabel()
-        l.font = .systemFont(ofSize: 15, weight: .regular)
-        l.textColor = .secondaryLabel
-        return l
-    }()
-    private lazy var sendButton: UIButton = {
-        let b = UIButton(type: .system)
-        b.setTitle("₼", for: .normal)
-        b.titleLabel?.font = .systemFont(ofSize: 18, weight: .semibold)
-        b.setTitleColor(.white, for: .normal)
-        b.backgroundColor = AppConstants.Colors.mandarinOrange
-        b.layer.cornerRadius = 22
-        b.addTarget(self, action: #selector(sendTapped), for: .touchUpInside)
-        return b
-    }()
-    
-    var onSendTapped: (() -> Void)?
     
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
-        backgroundColor = .secondarySystemGroupedBackground
+        backgroundColor = .clear
         selectionStyle = .default
         contentView.addSubview(avatarView)
         contentView.addSubview(nameLabel)
-        contentView.addSubview(badgeLabel)
-        contentView.addSubview(phoneLabel)
-        contentView.addSubview(sendButton)
+        contentView.addSubview(detailLabel)
         
         avatarView.snp.makeConstraints { make in
-            make.leading.equalToSuperview().inset(AppConstants.Auth.horizontalPadding)
+            make.leading.equalToSuperview().inset(16)
             make.centerY.equalToSuperview()
             make.width.height.equalTo(44)
+            make.top.greaterThanOrEqualToSuperview().inset(8)
+            make.bottom.lessThanOrEqualToSuperview().inset(8)
         }
         nameLabel.snp.makeConstraints { make in
             make.leading.equalTo(avatarView.snp.trailing).offset(12)
-            make.top.equalToSuperview().inset(14)
+            make.trailing.equalToSuperview().inset(16)
         }
-        nameLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        badgeLabel.snp.makeConstraints { make in
-            make.leading.equalTo(nameLabel.snp.trailing).offset(6)
-            make.centerY.equalTo(nameLabel)
-            make.height.equalTo(18)
-            make.trailing.lessThanOrEqualTo(sendButton.snp.leading).offset(-8)
-        }
-        badgeLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
-        phoneLabel.snp.makeConstraints { make in
+        detailLabel.snp.makeConstraints { make in
             make.leading.equalTo(nameLabel)
             make.top.equalTo(nameLabel.snp.bottom).offset(2)
-            make.trailing.lessThanOrEqualTo(sendButton.snp.leading).offset(-8)
-        }
-        sendButton.snp.makeConstraints { make in
-            make.trailing.equalToSuperview().inset(AppConstants.Auth.horizontalPadding)
-            make.centerY.equalToSuperview()
-            make.width.height.equalTo(44)
+            make.trailing.lessThanOrEqualToSuperview().inset(16)
         }
     }
     
@@ -532,22 +454,8 @@ private final class RecipientCell: UITableViewCell {
     func configure(with recipient: SendMoneyRecipient) {
         avatarView.configure(recipient: recipient, size: 44)
         nameLabel.text = recipient.displayName
-        phoneLabel.text = recipient.displayPhone
-        if recipient.isAppUser {
-            badgeLabel.text = "  \(AppConstants.appName)  "
-            badgeLabel.backgroundColor = AppConstants.Colors.mandarinOrange
-            badgeLabel.textColor = .white
-            badgeLabel.isHidden = false
-        } else {
-            badgeLabel.text = "  Contact  "
-            badgeLabel.backgroundColor = .tertiaryLabel
-            badgeLabel.textColor = .white
-            badgeLabel.isHidden = false
-        }
-    }
-    
-    @objc private func sendTapped() {
-        onSendTapped?()
+        let phoneText = recipient.displayPhone
+        detailLabel.text = recipient.isAppUser ? "@\(recipient.userId ?? "")  ·  \(phoneText)" : phoneText
     }
 }
 
@@ -562,14 +470,14 @@ private final class RecipientAvatarView: UIView {
     private let initialsLabel: UILabel = {
         let l = UILabel()
         l.font = .systemFont(ofSize: 16, weight: .semibold)
-        l.textColor = .white
+        l.textColor = AppConstants.Colors.authTitle
         l.textAlignment = .center
         return l
     }()
     
     override init(frame: CGRect) {
         super.init(frame: frame)
-        backgroundColor = AppConstants.Colors.mandarinOrange
+        backgroundColor = AppConstants.Colors.authInputBackground
         layer.cornerRadius = 22
         clipsToBounds = true
         addSubview(imageView)

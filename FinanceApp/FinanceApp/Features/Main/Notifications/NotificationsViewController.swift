@@ -15,6 +15,38 @@ final class NotificationsViewController: UIViewController {
     private let viewModel: NotificationsViewModel
     private var cancellables = Set<AnyCancellable>()
 
+    private let headerBar: UIView = {
+        let v = UIView()
+        v.backgroundColor = AppConstants.Colors.dashboardBackground
+        return v
+    }()
+
+    private lazy var backButton: UIButton = {
+        let b = UIButton(type: .system)
+        let config = UIImage.SymbolConfiguration(pointSize: 18, weight: .medium)
+        b.setImage(UIImage(systemName: "chevron.left", withConfiguration: config), for: .normal)
+        b.tintColor = AppConstants.Colors.authTitle
+        b.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
+        return b
+    }()
+
+    private let titleLabel: UILabel = {
+        let l = UILabel()
+        l.text = "Bildirişlər"
+        l.font = .systemFont(ofSize: 17, weight: .semibold)
+        l.textColor = AppConstants.Colors.authTitle
+        return l
+    }()
+
+    private lazy var markAllButton: UIButton = {
+        let b = UIButton(type: .system)
+        b.setTitle("Mark all read", for: .normal)
+        b.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
+        b.setTitleColor(AppConstants.Colors.authTitle, for: .normal)
+        b.addTarget(self, action: #selector(markAllTapped), for: .touchUpInside)
+        return b
+    }()
+
     private let tableView: UITableView = {
         let tv = UITableView(frame: .zero, style: .plain)
         tv.backgroundColor = AppConstants.Colors.dashboardBackground
@@ -52,24 +84,8 @@ final class NotificationsViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = AppConstants.Colors.dashboardBackground
-        title = "Bildirişlər"
-        navigationController?.setNavigationBarHidden(false, animated: false)
-        let navBarAppearance = UINavigationBarAppearance()
-        navBarAppearance.configureWithOpaqueBackground()
-        navBarAppearance.backgroundColor = AppConstants.Colors.dashboardBackground
-        navigationController?.navigationBar.standardAppearance = navBarAppearance
-        navigationController?.navigationBar.scrollEdgeAppearance = navBarAppearance
-        navigationController?.navigationBar.tintColor = AppConstants.Colors.authTitle
-        navigationController?.navigationBar.titleTextAttributes = [
-            .foregroundColor: AppConstants.Colors.authTitle,
-            .font: UIFont.systemFont(ofSize: 17, weight: .semibold)
-        ]
-        let backImage = UIImage(systemName: "chevron.left")
-        navigationItem.leftBarButtonItem = UIBarButtonItem(image: backImage, style: .plain, target: self, action: #selector(backTapped))
-        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Mark all read", style: .plain, target: self, action: #selector(markAllTapped))
-        navigationItem.rightBarButtonItem?.setTitleTextAttributes([.font: UIFont.systemFont(ofSize: 15, weight: .medium)], for: .normal)
+        navigationController?.setNavigationBarHidden(true, animated: false)
         setupUI()
-        setupConstraints()
         tableView.delegate = self
         tableView.dataSource = self
         tableView.register(NotificationCell.self, forCellReuseIdentifier: NotificationCell.reuseId)
@@ -87,15 +103,27 @@ final class NotificationsViewController: UIViewController {
         Task { await viewModel.loadNotifications() }
     }
 
-    private func setupUI() {
-        view.addSubview(tableView)
-        view.addSubview(emptyLabel)
-        view.addSubview(activityIndicator)
-    }
-
     private func setupConstraints() {
+        let h = AppConstants.Auth.horizontalPadding
+        headerBar.snp.makeConstraints { make in
+            make.top.leading.trailing.equalTo(view.safeAreaLayoutGuide)
+            make.height.equalTo(44)
+        }
+        backButton.snp.makeConstraints { make in
+            make.leading.equalToSuperview().offset(h)
+            make.centerY.equalToSuperview()
+            make.width.height.equalTo(44)
+        }
+        titleLabel.snp.makeConstraints { make in
+            make.center.equalToSuperview()
+        }
+        markAllButton.snp.makeConstraints { make in
+            make.trailing.equalToSuperview().inset(h)
+            make.centerY.equalToSuperview()
+        }
         tableView.snp.makeConstraints { make in
-            make.edges.equalTo(view.safeAreaLayoutGuide)
+            make.top.equalTo(headerBar.snp.bottom)
+            make.leading.trailing.bottom.equalTo(view.safeAreaLayoutGuide)
         }
         emptyLabel.snp.makeConstraints { make in
             make.center.equalToSuperview()
@@ -103,6 +131,17 @@ final class NotificationsViewController: UIViewController {
         activityIndicator.snp.makeConstraints { make in
             make.center.equalToSuperview()
         }
+    }
+
+    private func setupUI() {
+        view.addSubview(headerBar)
+        headerBar.addSubview(backButton)
+        headerBar.addSubview(titleLabel)
+        headerBar.addSubview(markAllButton)
+        view.addSubview(tableView)
+        view.addSubview(emptyLabel)
+        view.addSubview(activityIndicator)
+        setupConstraints()
     }
 
     private func bind() {
