@@ -76,7 +76,6 @@ final class EnterAmountViewController: UIViewController {
         b.setTitleColor(.white, for: .normal)
         b.backgroundColor = AppConstants.Colors.mandarinOrange
         b.layer.cornerRadius = 12
-        b.addTarget(EnterAmountViewController.self, action: #selector(sendTapped), for: .touchUpInside)
         return b
     }()
     private let errorLabel: UILabel = {
@@ -135,6 +134,7 @@ final class EnterAmountViewController: UIViewController {
         navigationController?.setNavigationBarHidden(false, animated: false)
         navigationItem.largeTitleDisplayMode = .never
         setupLayout()
+        sendButton.addTarget(self, action: #selector(sendTapped), for: .touchUpInside)
         recipientLabel.text = "Sending to"
         recipientNameLabel.text = viewModel.recipient.displayName
         currencyLabel.text = viewModel.selectedCardWithBalance?.currency ?? "AZN"

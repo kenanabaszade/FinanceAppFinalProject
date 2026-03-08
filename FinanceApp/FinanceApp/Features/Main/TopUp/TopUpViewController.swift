@@ -105,7 +105,6 @@ final class TopUpViewController: UIViewController {
         b.setTitleColor(.white, for: .normal)
         b.backgroundColor = AppConstants.Colors.mandarinOrange
         b.layer.cornerRadius = AppConstants.Sizes.cornerRadius
-        b.addTarget(TopUpViewController.self, action: #selector(addMoneyTapped), for: .touchUpInside)
         return b
     }()
     
@@ -155,6 +154,7 @@ final class TopUpViewController: UIViewController {
         navigationItem.rightBarButtonItem = helpButton
         setupLayout()
         bind()
+        addMoneyButton.addTarget(self, action: #selector(addMoneyTapped), for: .touchUpInside)
         amountField.addTarget(self, action: #selector(amountChanged), for: .editingChanged)
         accountsTableView.delegate = self
         accountsTableView.dataSource = self

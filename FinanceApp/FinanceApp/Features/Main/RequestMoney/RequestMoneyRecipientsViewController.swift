@@ -50,17 +50,26 @@ final class RequestMoneyRecipientsViewController: UIViewController {
         return tf
     }()
     
+    private let recentSectionContainer: UIView = {
+        let v = UIView()
+        v.backgroundColor = AppConstants.Colors.mandarinOrange.withAlphaComponent(0.12)
+        v.layer.cornerRadius = 12
+        return v
+    }()
+    
     private let recentTitleLabel: UILabel = {
         let l = UILabel()
-        l.text = "Tez-tez istifadə olunanlar"
-        l.font = .systemFont(ofSize: 16, weight: .bold)
-        l.textColor = AppConstants.Colors.authTitle
+        l.text = "TEZ-TEZ İSTİFADƏ OLUNANLAR"
+        l.font = .systemFont(ofSize: 12, weight: .bold)
+        l.textColor = AppConstants.Colors.mandarinOrange
+        l.numberOfLines = 1
         return l
     }()
     
     private let recentCollectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .horizontal
+        layout.minimumInteritemSpacing = 12
         layout.minimumLineSpacing = 12
         layout.sectionInset = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
         let cv = UICollectionView(frame: .zero, collectionViewLayout: layout)
@@ -102,6 +111,8 @@ final class RequestMoneyRecipientsViewController: UIViewController {
         return v
     }()
     
+    private var recentSectionHeight: Constraint?
+    
     init(viewModel: RequestMoneyRecipientsViewModel) {
         self.viewModel = viewModel
         super.init(nibName: nil, bundle: nil)
@@ -126,6 +137,7 @@ final class RequestMoneyRecipientsViewController: UIViewController {
         recentCollectionView.dataSource = self
         recentCollectionView.delegate = self
         recentCollectionView.register(FrequentRecipientCell.self, forCellWithReuseIdentifier: FrequentRecipientCell.reuseId)
+        recentCollectionView.contentInset = UIEdgeInsets(top: 0, left: AppConstants.Auth.horizontalPadding, bottom: 0, right: AppConstants.Auth.horizontalPadding)
         
         searchField.addTarget(self, action: #selector(searchChanged), for: .editingChanged)
         inviteButton.addTarget(self, action: #selector(inviteTapped), for: .touchUpInside)
@@ -164,8 +176,9 @@ final class RequestMoneyRecipientsViewController: UIViewController {
         headerContainer.addSubview(searchContainer)
         searchContainer.addSubview(searchIcon)
         searchContainer.addSubview(searchField)
-        headerContainer.addSubview(recentTitleLabel)
-        headerContainer.addSubview(recentCollectionView)
+        headerContainer.addSubview(recentSectionContainer)
+        recentSectionContainer.addSubview(recentTitleLabel)
+        recentSectionContainer.addSubview(recentCollectionView)
         headerContainer.addSubview(allContactsTitleLabel)
         
         tableView.tableHeaderView = headerContainer
@@ -208,17 +221,23 @@ final class RequestMoneyRecipientsViewController: UIViewController {
             make.trailing.equalToSuperview().inset(12)
             make.top.bottom.equalToSuperview()
         }
-        recentTitleLabel.snp.makeConstraints { make in
-            make.top.equalTo(searchContainer.snp.bottom).offset(AppConstants.Spacing.large)
+        recentSectionContainer.snp.makeConstraints { make in
+            make.top.equalTo(searchContainer.snp.bottom).offset(20)
             make.leading.trailing.equalToSuperview().inset(h)
+            recentSectionHeight = make.height.equalTo(140).constraint
+        }
+        recentTitleLabel.snp.makeConstraints { make in
+            make.top.equalToSuperview().inset(12)
+            make.leading.equalToSuperview().inset(16)
         }
         recentCollectionView.snp.makeConstraints { make in
-            make.top.equalTo(recentTitleLabel.snp.bottom).offset(AppConstants.Spacing.small)
-            make.leading.trailing.equalToSuperview().inset(h)
-            make.height.equalTo(80)
+            make.top.equalTo(recentTitleLabel.snp.bottom).offset(8)
+            make.leading.trailing.equalToSuperview()
+            make.height.equalTo(88)
+            make.bottom.equalToSuperview().inset(12)
         }
         allContactsTitleLabel.snp.makeConstraints { make in
-            make.top.equalTo(recentCollectionView.snp.bottom).offset(AppConstants.Spacing.large)
+            make.top.equalTo(recentSectionContainer.snp.bottom).offset(16)
             make.leading.trailing.equalToSuperview().inset(h)
             make.bottom.equalToSuperview().offset(-AppConstants.Spacing.medium)
         }
@@ -228,19 +247,22 @@ final class RequestMoneyRecipientsViewController: UIViewController {
         }
         
         DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            let targetSize = CGSize(width: self.tableView.bounds.width, height: UIView.layoutFittingCompressedSize.height)
-            let height = self.headerContainer.systemLayoutSizeFitting(
-                targetSize,
-                withHorizontalFittingPriority: .required,
-                verticalFittingPriority: .fittingSizeLevel
-            ).height
-            
-            var frame = self.headerContainer.frame
-            frame.size.height = height
-            self.headerContainer.frame = frame
-            self.tableView.tableHeaderView = self.headerContainer
+            self?.updateHeaderSize()
         }
+    }
+    
+    private func updateHeaderSize() {
+        let targetSize = CGSize(width: tableView.bounds.width, height: UIView.layoutFittingCompressedSize.height)
+        let height = headerContainer.systemLayoutSizeFitting(
+            targetSize,
+            withHorizontalFittingPriority: .required,
+            verticalFittingPriority: .fittingSizeLevel
+        ).height
+        var frame = headerContainer.frame
+        frame.size.width = tableView.bounds.width
+        frame.size.height = height
+        headerContainer.frame = frame
+        tableView.tableHeaderView = headerContainer
     }
     
     private func bind() {
@@ -254,9 +276,12 @@ final class RequestMoneyRecipientsViewController: UIViewController {
         viewModel.$frequentRecipients
             .receive(on: DispatchQueue.main)
             .sink { [weak self] list in
-                self?.recentTitleLabel.isHidden = list.isEmpty
-                self?.recentCollectionView.isHidden = list.isEmpty
-                self?.recentCollectionView.reloadData()
+                guard let self = self else { return }
+                let hasFrequent = !list.isEmpty
+                self.recentSectionContainer.isHidden = !hasFrequent
+                self.recentSectionHeight?.update(offset: hasFrequent ? 140 : 0)
+                self.recentCollectionView.reloadData()
+                self.updateHeaderSize()
             }
             .store(in: &cancellables)
         
@@ -401,7 +426,7 @@ extension RequestMoneyRecipientsViewController: UICollectionViewDataSource, UICo
         layout collectionViewLayout: UICollectionViewLayout,
         sizeForItemAt indexPath: IndexPath
     ) -> CGSize {
-        CGSize(width: 64, height: 80)
+        CGSize(width: 64, height: 88)
     }
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {

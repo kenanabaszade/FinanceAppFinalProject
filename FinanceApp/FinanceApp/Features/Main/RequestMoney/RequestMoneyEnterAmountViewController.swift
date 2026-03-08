@@ -61,7 +61,6 @@ final class RequestMoneyEnterAmountViewController: UIViewController {
         b.setTitleColor(.white, for: .normal)
         b.backgroundColor = AppConstants.Colors.mandarinOrange
         b.layer.cornerRadius = 12
-        b.addTarget(RequestMoneyEnterAmountViewController.self, action: #selector(requestTapped), for: .touchUpInside)
         return b
     }()
     
@@ -94,10 +93,9 @@ final class RequestMoneyEnterAmountViewController: UIViewController {
         navigationController?.setNavigationBarHidden(false, animated: false)
         navigationItem.largeTitleDisplayMode = .never
         setupLayout()
-        
+        requestButton.addTarget(self, action: #selector(requestTapped), for: .touchUpInside)
         recipientLabel.text = "Requesting from"
         recipientNameLabel.text = viewModel.recipient.displayName
-        
         bind()
         amountField.addTarget(self, action: #selector(amountChanged), for: .editingChanged)
         
