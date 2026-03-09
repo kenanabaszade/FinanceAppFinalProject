@@ -9,6 +9,7 @@ enum OnboardingRoute {
     case compliance
     case completionCheck
     case main
+    case mandarinPrices
     case cardDetail(card: Card)
     case addCard
     case sendMoney

@@ -194,6 +194,14 @@ class OnboardingCoordinator: Coordinator {
         case .completionCheck:
             runCompletionCheckThenMain()
             return
+        case .mandarinPrices:
+            let mandarinVC = MandarinPricesHostViewController()
+            mandarinVC.hidesBottomBarWhenPushed = true
+            if let tabBar = navigationController.viewControllers.last as? MainTabBarController,
+               let mainNav = tabBar.viewControllers?.first as? UINavigationController {
+                mainNav.pushViewController(mandarinVC, animated: true)
+            }
+            return
         case .main:
             let vm = MainViewModel(
                 authService: container.authService,
@@ -349,6 +357,7 @@ extension OnboardingCoordinator {
         }
     }
     func showSendMoney() { navigate(to: .sendMoney) }
+    func showMandarinPrices() { navigate(to: .mandarinPrices) }
     func showRequestMoneyRecipients() { navigate(to: .requestMoneyRecipients) }
     func showEnterAmount(recipient: SendMoneyRecipient) { navigate(to: .enterAmount(recipient: recipient)) }
     func showRequestMoneyEnterAmount(recipient: SendMoneyRecipient) { navigate(to: .requestMoneyEnterAmount(recipient: recipient)) }

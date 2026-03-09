@@ -103,7 +103,7 @@ final class MainViewController: UIViewController {
     private lazy var sendAction = makeQuickAction(title: "Send", systemImage: "arrow.up", action: #selector(sendTapped))
     private lazy var requestAction = makeQuickAction(title: "Request", systemImage: "arrow.down", action: #selector(requestTapped))
     private lazy var topUpAction = makeQuickAction(title: "Top Up", systemImage: "plus", action: #selector(topUpTapped))
-    private lazy var exchangeAction = makeQuickAction(title: "Exchange", systemImage: "dollarsign.arrow.circlepath")
+    private lazy var exchangeAction = makeQuickAction(title: "Mandarin", systemImage: "dollarsign.arrow.circlepath", action: #selector(mandarinTapped))
     
     private let transactionsTitleLabel: UILabel = {
         let l = UILabel()
@@ -467,6 +467,10 @@ final class MainViewController: UIViewController {
     
     @objc private func topUpTapped() {
         tabBarController?.selectedIndex = 2
+    }
+    
+    @objc private func mandarinTapped() {
+        coordinator?.showMandarinPrices()
     }
 }
 
