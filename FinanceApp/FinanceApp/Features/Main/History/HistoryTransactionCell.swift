@@ -73,24 +73,29 @@ final class HistoryTransactionCell: UITableViewCell {
             make.top.equalToSuperview().offset(HistoryTransactionCell.cardVerticalSpacing / 2)
             make.bottom.equalToSuperview().offset(-HistoryTransactionCell.cardVerticalSpacing / 2)
         }
+        
         iconContainer.snp.makeConstraints { make in
             make.leading.equalToSuperview().offset(AppConstants.Spacing.medium)
             make.centerY.equalToSuperview()
             make.width.height.equalTo(AppConstants.History.iconSize)
         }
+        
         iconImageView.snp.makeConstraints { make in
             make.center.equalToSuperview()
             make.width.height.equalTo(22)
         }
+        
         merchantLabel.snp.makeConstraints { make in
             make.leading.equalTo(iconContainer.snp.trailing).offset(AppConstants.Spacing.medium)
             make.top.equalToSuperview().offset(14)
             make.trailing.lessThanOrEqualTo(amountLabel.snp.leading).offset(-AppConstants.Spacing.small)
         }
+        
         subtitleLabel.snp.makeConstraints { make in
             make.leading.equalTo(merchantLabel)
             make.top.equalTo(merchantLabel.snp.bottom).offset(2)
         }
+        
         amountLabel.snp.makeConstraints { make in
             make.trailing.equalToSuperview().inset(AppConstants.Spacing.medium)
             make.centerY.equalToSuperview()
