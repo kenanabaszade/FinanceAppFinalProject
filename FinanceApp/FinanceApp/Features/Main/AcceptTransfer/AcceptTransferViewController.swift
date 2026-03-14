@@ -114,23 +114,18 @@ final class AcceptTransferViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .systemGroupedBackground
         title = "Receive money"
+        navigationItem.largeTitleDisplayMode = .never
+        setupLayout()
+        cardsTableView.delegate = self
+        cardsTableView.dataSource = self
+        cardsTableView.register(AcceptTransferCardCell.self, forCellReuseIdentifier: AcceptTransferCardCell.reuseId)
+        bind()
         Task { await viewModel.load() }
     }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        Task { await viewModel.load() }
-    }
-    
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        navigationController?.setNavigationBarHidden(false, animated: false)
-        navigationItem.largeTitleDisplayMode = .never
-        setupLayout()
-        bind()
-        cardsTableView.delegate = self
-        cardsTableView.dataSource = self
-        cardsTableView.register(AcceptTransferCardCell.self, forCellReuseIdentifier: AcceptTransferCardCell.reuseId)
+        navigationController?.setNavigationBarHidden(false, animated: animated)
     }
     
     private func setupLayout() {

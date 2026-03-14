@@ -148,7 +148,6 @@ final class HistoryViewController: UIViewController {
         bind()
         searchField.addTarget(self, action: #selector(searchChanged), for: .editingChanged)
         segmentedControl.selectedSegmentIndex = HistoryFilter.allCases.firstIndex(of: viewModel.selectedFilter) ?? 0
-        Task { await viewModel.loadTransactions() }
     }
 
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
@@ -169,6 +168,7 @@ final class HistoryViewController: UIViewController {
             backBtn.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
             navigationItem.leftBarButtonItem = UIBarButtonItem(customView: backBtn)
         }
+        Task { await viewModel.loadTransactions() }
     }
     
     private func setupUI() {

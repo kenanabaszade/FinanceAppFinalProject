@@ -84,7 +84,6 @@ final class NotificationsViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = AppConstants.Colors.dashboardBackground
-        navigationController?.setNavigationBarHidden(true, animated: false)
         setupUI()
         tableView.delegate = self
         tableView.dataSource = self
@@ -100,6 +99,7 @@ final class NotificationsViewController: UIViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        navigationController?.setNavigationBarHidden(true, animated: animated)
         Task { await viewModel.loadNotifications() }
     }
 

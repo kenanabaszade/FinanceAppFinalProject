@@ -146,7 +146,7 @@ final class RequestMoneyRecipientsViewController: UIViewController {
     }
     
     private func setupNavigationBar() {
-        title = "Sıfır"
+        title = "Request Money"
         navigationItem.largeTitleDisplayMode = .never
         navigationController?.setNavigationBarHidden(false, animated: false)
         let appearance = UINavigationBarAppearance()
